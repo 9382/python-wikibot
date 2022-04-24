@@ -126,6 +126,30 @@ def GetNamespace(articlename):
     if articlename.startswith("Special:"):
         return "Special"
     return "Article"
+def IterateCategory(category,torun):
+    #Iterates all wikilinks of a category, even if multi-paged
+    #Note: If the page scanning is successful, make sure to return True, or else this wont know
+    lastpage = ""
+    wholepage = GetWikiText(category)
+    links = GetWikiLinks(wholepage)
+    for page in links:
+        if torun(page):
+            lastpage = page
+    while True:
+        newlastpage = ""
+        wholepage = GetWikiText(category+"?from="+lastpage)
+        links = GetWikiLinks(wholepage)
+        for page in links:
+            if torun(page):
+                newlastpage = page
+        if newlastpage:
+            if ord(newlastpage[0]) < ord(lastpage[0]) or newlastpage == lastpage:
+                log(f"Looped around, finished scanning {category}")
+                break
+            lastpage = newlastpage
+        else:
+            log(f"No more LPC, finished scanning {category}")
+            break
 
 lastEditTime = 0
 editCount = 0
