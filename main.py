@@ -7,7 +7,7 @@ import random
 import time
 import os
 SUBMITEDITS = False #Set to True when you want the bot to actually change a page's content (AKA not debugging)
-EnabledTasks = ["ExampleTask","FixImproperUseOfFormat"] #List of tasks set to run. Simply put the filenames from /Tasks/ without the .py
+EnabledTasks = ["FixImproperUseOfFormat"] #List of tasks set to run. Simply put the filenames from /Tasks/ without the .py
 
 #Do NOT edit below this line unless you understand what any of it means (its quite fragile)
 
