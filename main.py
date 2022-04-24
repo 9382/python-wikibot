@@ -8,6 +8,7 @@ import time
 import os
 SUBMITEDITS = False #Set to True when you want the bot to actually change a page's content (AKA not debugging)
 EnabledTasks = ["FixImproperUseOfFormat"] #List of tasks set to run. Simply put the filenames from /Tasks/ without the .py
+maxEditsPerMinute = 10 #Amount of edits to run per minute. Should be fine to put this higher than 10, but bot guidelines are vague about what should be higher, so lets be safe.
 
 #Do NOT edit below this line unless you understand what any of it means (its quite fragile)
 
@@ -45,7 +46,6 @@ else:
     log("SUBMITEDITS is set to False. Edits will not be requested, only simulated")
 username,password = dotenv_values()["USER"],dotenv_values()["PASS"]
 enwiki = "https://en.wikipedia.org/"
-maxEditsPerMinute = 10
 getwithintagsreg = regex.compile('>[^<]+') #Quality
 def GetWithinTags(text):
     return getwithintagsreg.search(text).group()[1:]
