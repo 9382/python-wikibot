@@ -43,6 +43,6 @@ def ScanCategoryForFormat(category):
 lastpagechecked = ScanCategoryForFormat(maincat)
 while True:
     if lastpagechecked:
-        lastpagechecked = ScanCategoryForFormat(maincat+"?pagefrom="+lastpagechecked)
+        lastpagechecked = ScanCategoryForFormat(maincat+"?from="+lastpagechecked)
     else:
         log(f"No more LPC, finished scanning {maincat}")
