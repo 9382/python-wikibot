@@ -7,7 +7,7 @@ import random
 import time
 import os
 SUBMITEDITS = True #Set to True when you want the bot to actually change a page's content (AKA not debugging)
-EnabledTasks = ["ExampleTask"] #List of tasks set to run. Simply put the filenames from /Tasks/ without the .py
+EnabledTasks = ["ExampleTask","FixImproperUseOfFormat"] #List of tasks set to run. Simply put the filenames from /Tasks/ without the .py
 
 #Do NOT edit below this line unless you understand what any of it means (its quite fragile)
 
@@ -178,9 +178,9 @@ for file,contents in execList.items():
         log(f"[Tasks] Task {file} loading error -> {exc}")
 log("Finished loading tasks")
 while True:
-    time.sleep(15)
+    time.sleep(120)
     tasks = threading.active_count()
-    print(f"Active task count: {tasks-1}")
+    log(f"Active task count: {tasks-1}")
     if tasks == 1:
         log("All tasks seem to have been terminated or finished. Exiting script in 15 seconds..")
         time.sleep(15)
