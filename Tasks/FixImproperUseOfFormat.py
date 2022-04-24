@@ -2,7 +2,7 @@
 
 maincat = "Category:CS1_errors:_format_without_URL"
 FormatLocator = regex.compile("\| *format *= *[^|}]+(\||})")
-FixCases = ["e-?book","newspaper","magazine","newsletter","(hard|paper)back","novel","dvd","blu-?ray","print"]
+FixCases = ["e-?book","newspaper","magazine","newsletter","script","(hard|paper)(back|cover)","novel","print","dvd","blu-?ray","disc"]
 def ScanCategoryForFormat(category):
     wholepage = GetWikiText(category)
     links = GetWikiLinks(wholepage)
@@ -22,9 +22,9 @@ def ScanCategoryForFormat(category):
         lastpage = page
         try:
             CiteReferences = GetReferences(raw)
+            anychanges = False
             for ref in CiteReferences: #Its a citation error, so look in citations
                 refinfo = GetReferenceParameters(ref)
-                anychanges = False
                 if "format" in refinfo and not "url" in refinfo: #Cause of the error
                     for reg in FixCases:
                         if regex.compile(reg).search(refinfo["format"].lower()):
@@ -38,7 +38,7 @@ def ScanCategoryForFormat(category):
             if anychanges:
                 ChangeWikiPage(page,raw,f"Changing |format= to |type= (CS1 Error: |format= without |url=)")
         except Exception as exc:
-            log("Failed to process",page,"due to the error of",exc)
+            log(f"Failed to process {page} due to the error of {exc}")
     return lastpage
 lastpagechecked = ScanCategoryForFormat(maincat)
 while True:
