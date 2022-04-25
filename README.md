@@ -1,6 +1,6 @@
-# Py-WikiBot
+# Python-WikiBot
 
-Py-WikiBot is a tool used for running wikipedia bots and their tasks.
+Python-WikiBot is a tool used for running wikipedia bots and their tasks.
 
 ## Notes and Warnings
 
