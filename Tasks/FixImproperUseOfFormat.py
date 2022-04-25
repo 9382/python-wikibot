@@ -2,7 +2,7 @@
 
 maincat = "Category:CS1_errors:_format_without_URL"
 FormatLocator = regex.compile("\| *format *= *[^|}]+(\||})")
-FixCases = ["e-?book","newspaper","magazine","newsletter","script","(hard|paper)(back|cover)","novel","print","dvd","blu-?ray","disc"]
+FixCases = ["e?-?book","newspaper","magazine","letter","script","(hard|paper)(back|cover)","novel","print","dvd","blu-?ray","disc"]
 def CheckPageForErrors(page):
     namespace = GetNamespace(page)
     if namespace != "Article":
@@ -27,11 +27,11 @@ def CheckPageForErrors(page):
                         PrecisePosition = FormatLocator.search(ref).span()
                         formatPos = ref.find("format",PrecisePosition[0],PrecisePosition[1])
                         fix = SubstituteIntoString(ref,"type",formatPos,formatPos+6)
-                        raw.replace(ref,fix)
+                        raw = raw.replace(ref,fix)
                         # print("Found and fixed a case. format=",refinfo["format"],"template=",refinfo["__TEMPLATE"])
                         anychanges = True
         if anychanges:
-            ChangeWikiPage(page,raw,f"Changing |format= to |type= (CS1 Error: |format= without |url=)")
+            ChangeWikiPage(page,raw,f"Changing |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
         return True
     except Exception as exc:
         log(f"Failed to process {page} due to the error of {exc}")
