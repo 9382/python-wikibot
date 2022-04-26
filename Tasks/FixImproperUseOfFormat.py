@@ -9,7 +9,7 @@ def CheckPageForErrors(page):
         print("Skipping page not in article namespace",page)
         return
     try:
-        raw = GetWikiRawText(page)
+        raw = GetRawWikiText(page)
     except:
         print("Couldnt get raw of",page)
         return

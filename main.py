@@ -50,15 +50,18 @@ username,password = dotenv_values()["USER"],dotenv_values()["PASS"]
 enwiki = "https://en.wikipedia.org/"
 getwithintagsreg = regex.compile('>[^<]+') #Quality
 def GetWithinTags(text):
+    #Baseplate regex
     return getwithintagsreg.search(text).group()[1:]
 InQuotereg = regex.compile('"[^"]*')
 def GetInQuote(text):
+    #Baseplate regex
     return InQuotereg.search(text).group()[1:]
 cookies = {}
 def request(method,page,**kwargs):
     global cookies
     request = getattr(requests,method)(page,cookies=cookies,**kwargs)
     if "set-cookie" in request.headers:
+        #Handles cookies. Mostly for getting cookies from logging in
         setcookies = request.headers["set-cookie"].split(", ")
         for cookie in setcookies:
             actualCookie = cookie.split(";")[0]
@@ -73,12 +76,14 @@ def GetTokenForType(actiontype):
 boundary = "-----------PYB"+str(random.randint(1e9,9e9))
 print("Using boundary",boundary)
 def CreateFormRequest(location,d):
+    #This seems to be the approach that worked consistently for me, so thats what is used for all requests.
     finaltext = ""
     for arg,data in d.items():
         finaltext += f"""{boundary}\nContent-Disposition: form-data; name="{arg}"\n\n{data}\n"""
     finaltext += f"{boundary}--"
     return request("post",location,data=finaltext.encode("utf-8"),headers={"Content-Type":f"multipart/form-data; boundary={boundary[2:]}"})
 
+#NOTE: This section is a mess. Its also vital cause its how any tasks get their information. Do cleanup at some point.
 def GetReferenceParameters(reference):
     result = {}
     starting,ending = reference.find("{{"),reference.find("}}")
@@ -94,15 +99,17 @@ def GetReferenceParameters(reference):
 wikilinkreg = regex.compile('<a href="/wiki/[^"]+" title="[^"]+">')
 WLSpecificreg = regex.compile('"/wiki/[^"]+')
 def GetWikiLinks(text):
+    #Does what the name suggests. Note that this is looking for GetWikiText, not GetRawWikiText. Consider changing that
     return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(text)]
-wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #THIS IS STUPID
+wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
 def GetWikiText(article):
     return wholepagereg.search(requests.get(enwiki+"wiki/"+article).text).group()[42:-6]
 def GetWholeWikiText(article):
-    return requests.get(enwiki+"wiki/"+article,cookies=cookies).text
+    return requests.get(enwiki+"wiki/"+article,cookies=cookies).text #More for debugging, shouldnt really be used
 #The repeated [^X] is probably bad, but oh well!
 rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
-def GetWikiRawText(article):
+def GetRawWikiText(article):
+    #Gets the regular text, as seen in Edit source
     content = requests.get(enwiki+"wiki/"+article+"?action=edit",cookies=cookies).text
     rawtext = rawtextreg.search(content).group()
     return regex.sub("&amp;","&",regex.sub("&lt;","<",GetWithinTags(rawtext))) #&lt; and &amp; autocorrection
@@ -113,8 +120,9 @@ def GetReferences(text):
 namespaces = ["User","Wikipedia","WP","File","MediaWiki","Template","Help","Category","Portal","Draft","TimedText","Module"] #Gadget( definition) is deprecated
 pseudoNamespaces = {"CAT":"Category","H":"Help","MOS":"Wikipedia","WP":"Wikipedia","WT":"Wikipedia talk",
                     "Project":"Wikipedia","Project_talk":"Wikipedia talk","Image":"File","Image_talk":"File talk",
-                    "WikiProject":"Wikipedia","T":"Template","MP":"Article","P":"Portal","MoS":"Wikipedia"}
+                    "WikiProject":"Wikipedia","T":"Template","MP":"Article","P":"Portal","MoS":"Wikipedia"} #Special cases that dont match normal sets
 def GetNamespace(articlename):
+    #Simply gets the namespace of an article from its name
     for namespace in namespaces:
         if articlename.startswith(namespace+":"):
             return namespace
@@ -137,7 +145,8 @@ def IterateCategory(category,torun):
     for page in links:
         if torun(page):
             lastpage = page
-    while True:
+    #If we dont get a lastpage in the first place, its either empty, or the task needs configuring. Escape either way
+    while lastpage:
         newlastpage = ""
         wholepage = GetWikiText(category+"?from="+lastpage)
         links = GetWikiLinks(wholepage)
@@ -146,16 +155,20 @@ def IterateCategory(category,torun):
                 newlastpage = page
         if newlastpage:
             if ord(newlastpage[0]) < ord(lastpage[0]) or newlastpage == lastpage:
+                #Determines if we have either looped, or gone back pages due to wikilinks in other sections.
+                #Either way, its finished, and we should now exit
                 log(f"Looped around, finished scanning {category}")
                 break
             lastpage = newlastpage
         else:
+            #No pages could be found in the category, its finished. Exit
             log(f"No more LPC, finished scanning {category}")
             break
 
 lastEditTime = 0
 editCount = 0
 def ChangeWikiPage(article,newcontent,editsummary):
+    #Submits edits to pages automatically (since the form is a bit of a nightmare)
     global lastEditTime
     global editCount
     editCount += 1
@@ -164,7 +177,6 @@ def ChangeWikiPage(article,newcontent,editsummary):
     if not SUBMITEDITS:
         return print(f"Not submitting changes to {article} as SUBMITEDITS is set to False")
     log(f"Making edits to {article}:\n    {editsummary}")
-    global lastEditTime
     EPS = 60/maxEditsPerMinute #Incase you dont wanna go too fast
     if time.time()-lastEditTime < EPS:
         print("Waiting for edit cooldown to wear off")
@@ -172,9 +184,9 @@ def ChangeWikiPage(article,newcontent,editsummary):
         time.sleep(.2)
     lastEditTime = time.time()
     return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",{"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"})
-
 def SubstituteIntoString(wholestr,substitute,start,end):
     return wholestr[:start]+substitute+wholestr[end:]
+
 log(f"Attempting to log-in as {username}")
 CreateFormRequest(enwiki+f"w/api.php?action=login&format=json",{"lgname":username,"lgpassword":password,"lgtoken":GetTokenForType("login")}) #Set-Cookie handles this
 if not "centralauth_User" in cookies:
