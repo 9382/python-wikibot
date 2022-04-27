@@ -85,16 +85,18 @@ def CreateFormRequest(location,d):
 
 #NOTE: This section is a mess. Its also vital cause its how any tasks get their information. Do cleanup at some point.
 def GetReferenceParameters(reference):
+    #Note: Possibly slightly buggy. Be careful and do testing at some point to find out
     result = {}
     starting,ending = reference.find("{{"),reference.find("}}")
     for param in reference[starting+2:ending].split("|"):
         split = param.split("=")
-        if not 1 in split and not "__TEMPLATE" in result:
+        if not "__TEMPLATE" in result:
             result["__TEMPLATE"] = param.strip()
-        try:
-            result[split[0].strip()] = "=".join(split[1:]).strip()
-        except:
-            continue #Unnammed parameter (Probably a ||)
+        else:
+            try:
+                result[split[0].strip()] = "=".join(split[1:]).strip()
+            except:
+                continue #Unnammed parameter (Probably a ||)
     return result
 wikilinkreg = regex.compile('<a href="/wiki/[^"]+" title="[^"]+">')
 WLSpecificreg = regex.compile('"/wiki/[^"]+')
