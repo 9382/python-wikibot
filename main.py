@@ -225,3 +225,4 @@ while True:
         log("All tasks seem to have been terminated or finished. Exiting script in 15 seconds..")
         time.sleep(15)
         break
+input("Press enter to exit...")
