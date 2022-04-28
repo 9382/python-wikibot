@@ -14,7 +14,7 @@ Edge cases to consider:
 
 def CheckPageForErrors(page):
     namespace = GetNamespace(page)
-    if namespace != "Article":
+    if not namespace in ["Article","Draft"]:
         print("Skipping page not in article namespace",page)
         return
     try:
