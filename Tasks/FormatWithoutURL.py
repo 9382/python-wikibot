@@ -1,4 +1,5 @@
 #This task will go through all pages in Category:CS1_errors:_format_without_URL and fix clear-cut cases of the improper use of format
+#Now inferior to GeneralCitationFix.py
 
 maincat = "Category:CS1_errors:_format_without_URL"
 FormatLocator = regex.compile("\| *format *= *[^|}]+(\||})")

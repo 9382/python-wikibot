@@ -1,0 +1,99 @@
+#This task will go through all pages in Category:CS1_errors:_format_without_URL and fix clear-cut cases of the improper use of format
+
+formatcat = "Category:CS1_errors:_format_without_URL"
+FormatLocator = regex.compile("\| *format *= *[^|}]+(\||})")
+FixCases = ["(^| )e?-?book","newspaper","magazine","letter","script","(hard|paper)(back|cover)","novel","print","dvd","blu-?ray","disc","obituary"]
+BlacklistedCases = ["pdf","doc","audio commentary","digital"] #Audio commentary is a common format in this category. Its not really a "medium", so ill consider it as not wanting to be changed automatically
+"""
+Edge cases to consider:
+  [BL/WL] video (Could be a case of type/medium being more fitting, but also video is an online thing. Most likely not going to include)
+  [WL] XYZ pages (Would honestly be better removing the format parameter entirely if this is found, as its unfit)
+  [BL] digital (Hard to decide whether or not phrases like "Digitized by GoogleEBook" should be converted or not)
+"""
+def LookForBadFormat(article):
+    anychanges = False
+    raw = article.GetRawContent()
+    for template in article.GetTemplates(): #Its a citation error, so look in citations
+        if template.Template.lower() == "citation" or template.Template.lower().find("cite ") > -1:
+            if "format" in template.Args and not "url" in template.Args: #Cause of the error
+                curformat = template.Args["format"].lower()
+                blacklisted = False
+                for reg in BlacklistedCases:
+                    if regex.compile(reg).search(curformat):
+                        blacklisted = True #Dont attempt any fixes in this ref
+                if not blacklisted:
+                    for reg in FixCases:
+                        if regex.compile(reg).search(curformat):
+                            template.ChangeKey("format","type")
+                            raw = raw.replace(template.Original,template.Text)
+                            anychanges = True
+    article.RawContent = raw
+    return anychanges
+
+badcharcat = "Category:CS1_errors:_invisible_characters"
+def LookForBadCharacters(article):
+    anychanges = False
+    raw = article.GetRawContent()
+    for template in article.GetTemplates(): #Its a citation error, so look in citations
+        if template.Template.lower() == "citation" or template.Template.lower().find("cite ") > -1:
+            for key,item in list(template.Args.items()):
+                for char in item:
+                    charord = ord(char)
+                    if charord == 0x200B: #Zero Width Space
+                        item = item.replace(char,"")
+                        anychanges = True
+                    elif charord == 0x200D: #Zero Width Joiner
+                        item = item.replace(char,"")
+                        anychanges = True
+                    elif charord == 0x200A: #Hair Space
+                        item = item.replace(char,"")
+                        anychanges = True
+                    elif charord == 0xA0: #Non-Breaking Space (Replace instead of remove)
+                        item = item.replace(char," ")
+                        anychanges = True
+                    elif charord >= 0 and charord <= 0x1F: #C0 control
+                        item = item.replace(char,"")
+                        anychanges = True
+                    elif charord >= 0x80 and charord <= 0x9F: #C1 control
+                        item = item.replace(char,"")
+                        anychanges = True
+                if type(key) == str:
+                    template.ChangeKeyData(key,item)
+            raw = raw.replace(template.Original,template.Text)
+    article.RawContent = raw
+    return anychanges
+
+def CheckPageForErrors(page):
+    article = Article(page)
+    if not article.Namespace in ["Article","Draft"]:
+        print("Skipping page not in article namespace",page)
+        return
+    if not article.exists():
+        print("Couldnt get raw of",page)
+        return
+    try:
+        anyformat = LookForBadFormat(article)
+        anybadchar = LookForBadCharacters(article)
+        editsdone = []
+        if anyformat:
+            editsdone.append("Changing |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
+        if anybadchar:
+            editsdone.append("Removing invisible characters (CS1 Error: [[Category:CS1 errors: invisible characters|invisible characters]]")
+        if len(editsdone) > 0:
+            article.edit(article.RawContent+"\n",f"Fixing citations -> {', '.join(editsdone)}")
+        return True
+    except Exception as exc:
+        log(f"Failed to process {page} due to the error of {exc}")
+
+h12 = 43200
+lastedittime = time.time()-h12
+while True:
+    if time.time()-h12 > lastedittime:
+        log(f"Starting new cycle of GeneralCitationFix (12h {h12}, c-p {time.time()-lastedittime})")
+        CheckPageForErrors(f"User:{username}/sandbox")
+        # IterateCategory(formatcat,CheckPageForErrors)
+        # IterateCategory(badcharcat,CheckPageForErrors)
+        lastedittime = time.time()
+        log(f"Finished cycle of GeneralCitationFix (12h {h12}, c-p {time.time()-lastedittime})")
+    else:
+        time.sleep(1)
