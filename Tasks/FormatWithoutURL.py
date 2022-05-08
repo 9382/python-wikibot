@@ -13,39 +13,32 @@ Edge cases to consider:
 """
 
 def CheckPageForErrors(page):
-    namespace = GetNamespace(page)
-    if not namespace in ["Article","Draft"]:
+    article = Article(page)
+    if not article.Namespace in ["Article","Draft"]:
         print("Skipping page not in article namespace",page)
         return
-    try:
-        raw = GetRawWikiText(page)
-    except:
+    if not article.exists():
         print("Couldnt get raw of",page)
         return
-    # print("Processing",page)
-    lastpage = page
+    raw = article.GetRawContent()
     try:
-        CiteReferences = GetReferences(raw)
         anychanges = False
-        for ref in CiteReferences: #Its a citation error, so look in citations
-            refinfo = GetReferenceParameters(ref)
-            if "format" in refinfo and not "url" in refinfo: #Cause of the error
-                blacklisted = False
-                for reg in BlacklistedCases:
-                    if regex.compile(reg).search(refinfo["format"].lower()):
-                        blacklisted = True #Dont attempt any fixes in this ref
-                if not blacklisted:
-                    for reg in FixCases:
-                        if regex.compile(reg).search(refinfo["format"].lower()):
-                            #This is really shady but it works surprisingly well in testing
-                            PrecisePosition = FormatLocator.search(ref).span()
-                            formatPos = ref.find("format",PrecisePosition[0],PrecisePosition[1])
-                            fix = SubstituteIntoString(ref,"type",formatPos,formatPos+6)
-                            raw = raw.replace(ref,fix)
-                            # print("Found and fixed a case. format=",refinfo["format"],"template=",refinfo["__TEMPLATE"])
-                            anychanges = True
+        for template in article.GetTemplates(): #Its a citation error, so look in citations
+            if template.Template.lower() == "citation" or template.Template.lower().find("cite ") > -1:
+                if "format" in template.Args and not "url" in template.Args: #Cause of the error
+                    curformat = template.Args["format"].lower()
+                    blacklisted = False
+                    for reg in BlacklistedCases:
+                        if regex.compile(reg).search(curformat):
+                            blacklisted = True #Dont attempt any fixes in this ref
+                    if not blacklisted:
+                        for reg in FixCases:
+                            if regex.compile(reg).search(curformat):
+                                template.ChangeKey("format","type")
+                                raw = raw.replace(template.Original,template.Text)
+                                anychanges = True
         if anychanges:
-            ChangeWikiPage(page,raw,f"Changing |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
+            article.edit(raw,"Changing |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
         return True
     except Exception as exc:
         log(f"Failed to process {page} due to the error of {exc}")

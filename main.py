@@ -82,42 +82,10 @@ def CreateFormRequest(location,d):
         finaltext += f"""{boundary}\nContent-Disposition: form-data; name="{arg}"\n\n{data}\n"""
     finaltext += f"{boundary}--"
     return request("post",location,data=finaltext.encode("utf-8"),headers={"Content-Type":f"multipart/form-data; boundary={boundary[2:]}"})
-
-#NOTE: This section is a mess. Its also vital cause its how any tasks get their information. Do cleanup at some point.
-def GetReferenceParameters(reference):
-    #Note: Possibly slightly buggy. Be careful and do testing at some point to find out
-    result = {}
-    starting,ending = reference.find("{{"),reference.find("}}")
-    for param in reference[starting+2:ending].split("|"):
-        split = param.split("=")
-        if not "__TEMPLATE" in result:
-            result["__TEMPLATE"] = param.strip()
-        else:
-            try:
-                result[split[0].strip()] = "=".join(split[1:]).strip()
-            except:
-                continue #Unnammed parameter (Probably a ||)
-    return result
-wikilinkreg = regex.compile('<a href="/wiki/[^"]+" title="[^"]+">')
-WLSpecificreg = regex.compile('"/wiki/[^"]+')
-def GetWikiLinks(text):
-    #Does what the name suggests. Note that this is looking for GetWikiText, not GetRawWikiText. Consider changing that
-    return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(text)]
-wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
-def GetWikiText(article):
-    return wholepagereg.search(requests.get(enwiki+"wiki/"+article).text).group()[42:-6]
 def GetWholeWikiText(article):
-    return requests.get(enwiki+"wiki/"+article,cookies=cookies).text #More for debugging, shouldnt really be used
-#The repeated [^X] is probably bad, but oh well!
-rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
-def GetRawWikiText(article):
-    #Gets the regular text, as seen in Edit source
-    content = requests.get(enwiki+"wiki/"+article+"?action=edit",cookies=cookies).text
-    rawtext = rawtextreg.search(content).group()
-    return regex.sub("&amp;","&",regex.sub("&lt;","<",GetWithinTags(rawtext))) #&lt; and &amp; autocorrection
-RefLocator = regex.compile("<ref[^>]*>{{[^}]+}}</ref>") #Note: Only cares about refs using a {{template}}
-def GetReferences(text):
-    return RefLocator.findall(text)
+    return request("get",enwiki+"wiki/"+article).text #More for debugging, shouldnt really be used
+def SubstituteIntoString(wholestr,substitute,start,end):
+    return wholestr[:start]+substitute+wholestr[end:]
 
 namespaces = ["User","Wikipedia","WP","File","MediaWiki","Template","Help","Category","Portal","Draft","TimedText","Module"] #Gadget( definition) is deprecated
 pseudoNamespaces = {"CAT":"Category","H":"Help","MOS":"Wikipedia","WP":"Wikipedia","WT":"Wikipedia talk",
@@ -138,20 +106,169 @@ def GetNamespace(articlename):
     if articlename.startswith("Special:"):
         return "Special"
     return "Article"
+lastEditTime = 0
+editCount = 0
+def ChangeWikiPage(article,newcontent,editsummary):
+    #Submits edits to pages automatically (since the form is a bit of a nightmare)
+    #Not in the class as we need to cenrtalise lastEditTime
+    global lastEditTime
+    global editCount
+    editCount += 1
+    if editCount % 20 == 0:
+        print("Edit count:",editCount) #Purely statistical
+    if not SUBMITEDITS:
+        return print(f"Not submitting changes to {article} as SUBMITEDITS is set to False")
+    log(f"Making edits to {article}:\n    {editsummary}")
+    EPS = 60/maxEditsPerMinute #Incase you dont wanna go too fast
+    if time.time()-lastEditTime < EPS:
+        print("Waiting for edit cooldown to wear off")
+    while time.time()-lastEditTime < EPS:
+        time.sleep(.2)
+    lastEditTime = time.time()
+    return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",{"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"})
+def ExcludeTag(text,tag): #Returns a filtered version. Most useful for nowiki.
+    upperlower = "".join([f"[{x.upper()}{x.lower()}]" for x in tag])
+    finalreg = f"<{upperlower}(>|[^>]*[^/]>)[\s\S]*?</{upperlower} *>"
+    print(finalreg)
+    return regex.sub(finalreg,"",text)
+
+class Template: #Parses a template and returns a class object representing it
+    def __init__(self,templateText):
+        if type(templateText) != str or templateText[:2] != "{{" or templateText[-2:] != "}}":
+            raise Exception(f"The text '{templateText}' is not a valid template")
+        self.Original = templateText #DO NOT EDIT THIS
+        self.Text = templateText
+        templateArgs = templateText[2:-2].split("|")
+        self.Template = templateArgs[0].strip()
+        args = {}
+        for arg in templateArgs:
+            splitarg = arg.split("=")
+            key,item = splitarg[0],"=".join(splitarg[1:])
+            if not item: #No key
+                lowestKeyPossible = 1
+                while True:
+                    if lowestKeyPossible in args:
+                        lowestKeyPossible += 1
+                    else:
+                        args[lowestKeyPossible] = arg.strip()
+                        break
+            else: #Key specified
+                args[key.strip()] = item.strip()
+        self.Args = args
+    #The functions below are designed to respect the original template's format (E.g. its spacing)
+    #Simply use the below functions, and then ask for self.Text for the new representation to use
+    def ChangeKey(self,key,newkey): #Replaces one key with another, retaining the original data
+        #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX.
+        if not key in self.Args:
+            raise KeyError(f"{key} is not a key in the Template")
+        self.Args[newkey] = self.Args[key]
+        self.Args.pop(key)
+        keylocation = regex.compile(f"\| *{key} *=").search(self.Text)
+        keytext = keylocation.group()
+        self.Text = SubstituteIntoString(self.Text,keytext.replace(key,newkey),*keylocation.span())
+    def ChangeKeyData(self,key,newdata): #Changes the contents of the key
+        #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX.
+        if not key in self.Args:
+            raise KeyError(f"{key} is not a key in the Template")
+        olddata = self.Args[key]
+        self.Args[key] = newdata
+        keylocation = regex.compile(f"\| *{key} *=").search(self.Text)
+        target = self.Text[keylocation.start()+1:].split("|")[0]
+        self.Text = SubstituteIntoString(self.Text,target.replace(olddata,newdata),keylocation.start()+1,keylocation.start()+len(target)+1)
+
+rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
+wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
+wikilinkreg = regex.compile('<a href="/wiki/[^"]+" title="[^"]+">')
+templatesreg = regex.compile('{{[\s\S]+?}}')
+WLSpecificreg = regex.compile('"/wiki/[^"]+')
+class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
+    def __init__(self,articleName):
+        self.Article = articleName
+        self.Namespace = GetNamespace(articleName)
+        self.Content = None #Avoid getting directly outside of class functions
+        self.RawContent = None #Same as above
+        self.Templates = None #Same as above
+    def GetRawContent(self):
+        if self.RawContent != None:
+            return self.RawContent
+        content = request("get",f"{enwiki}wiki/{self.Article}?action=edit").text
+        if not rawtextreg.search(content):
+            #Not an article, therefore flag as such and give up now.
+            self.RawContent = False
+            return False
+        correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",GetWithinTags(rawtextreg.search(content).group()))) #&lt; and &amp; autocorrection
+        self.RawContent = correctedtext
+        return correctedtext
+    def exists(self):
+        if self.RawContent == None:
+            self.GetRawContent()
+        return self.RawContent != False
+    def GetContent(self):
+        if self.Content:
+            return self.Content
+        if not self.exists():
+            return
+        content = wholepagereg.search(request("get",enwiki+"wiki/"+self.Article).text).group()[42:-6]
+        self.Content = content
+        return content
+    def edit(self,newContent,editSummary):
+        if newContent == self.RawContent:
+            #If you really need to null edit, add a \n. MW will ignore it, but this wont
+            log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
+            return
+        if not self.exists():
+            #Will still continue to submit the edit, even if this is the case
+            log(f"Warning: Editing article that doesnt exist ({self.Article})")
+        ChangeWikiPage(self.Article,newContent,editSummary)
+    def GetWikiLinks(self):
+        if not self.exists():
+            return []
+        #Does what the name suggests. Note that this is looking for GetWikiText, not GetRawWikiText. Consider changing that
+        return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(self.GetContent())]
+    def GetTemplates(self):
+        if self.Templates != None:
+            return self.Templates
+        if not self.exists():
+            self.Templates = []
+            return []
+        self.Templates = [Template(x) for x in templatesreg.findall(self.RawContent)]
+        return self.Templates
+
+#NOTE: This section is a mess. Its also vital cause its how any tasks get their information. Do cleanup at some point.
+def GetReferenceParameters(reference):
+    #Note: Possibly slightly buggy. Be careful and do testing at some point to find out
+    result = {}
+    starting,ending = reference.find("{{"),reference.find("}}")
+    for param in reference[starting+2:ending].split("|"):
+        split = param.split("=")
+        if not "__TEMPLATE" in result:
+            result["__TEMPLATE"] = param.strip()
+        else:
+            try:
+                result[split[0].strip()] = "=".join(split[1:]).strip()
+            except:
+                continue #Unnammed parameter (Probably a ||)
+    return result
+RefLocator = regex.compile("<ref[^>]*>{{[^}]+}}</ref>") #Note: Only cares about refs using a {{template}}
+def GetReferences(text):
+    return RefLocator.findall(text)
+
 def IterateCategory(category,torun):
     #Iterates all wikilinks of a category, even if multi-paged
     #Note: If the page scanning is successful, make sure to return True, or else this wont know
     lastpage = ""
-    wholepage = GetWikiText(category)
-    links = GetWikiLinks(wholepage)
+    catpage = Article(category)
+    if not catpage.exists():
+        log(f"Attempting to iterate {category} despite it not existing")
+    links = catpage.GetWikiLinks()
     for page in links:
         if torun(page):
             lastpage = page
     #If we dont get a lastpage in the first place, its either empty, or the task needs configuring. Escape either way
     while lastpage:
         newlastpage = ""
-        wholepage = GetWikiText(category+"?from="+lastpage)
-        links = GetWikiLinks(wholepage)
+        catpage = Article(category+"?from="+lastpage)
+        links = catpage.GetWikiLinks()
         for page in links:
             if torun(page):
                 newlastpage = page
@@ -166,28 +283,6 @@ def IterateCategory(category,torun):
             #No pages could be found in the category, its finished. Exit
             log(f"No more LPC, finished scanning {category}")
             break
-
-lastEditTime = 0
-editCount = 0
-def ChangeWikiPage(article,newcontent,editsummary):
-    #Submits edits to pages automatically (since the form is a bit of a nightmare)
-    global lastEditTime
-    global editCount
-    editCount += 1
-    if editCount % 10 == 0:
-        print("Edit count:",editCount) #Purely statistical
-    if not SUBMITEDITS:
-        return print(f"Not submitting changes to {article} as SUBMITEDITS is set to False")
-    log(f"Making edits to {article}:\n    {editsummary}")
-    EPS = 60/maxEditsPerMinute #Incase you dont wanna go too fast
-    if time.time()-lastEditTime < EPS:
-        print("Waiting for edit cooldown to wear off")
-    while time.time()-lastEditTime < EPS:
-        time.sleep(.2)
-    lastEditTime = time.time()
-    return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",{"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"})
-def SubstituteIntoString(wholestr,substitute,start,end):
-    return wholestr[:start]+substitute+wholestr[end:]
 
 log(f"Attempting to log-in as {username}")
 CreateFormRequest(enwiki+f"w/api.php?action=login&format=json",{"lgname":username,"lgpassword":password,"lgtoken":GetTokenForType("login")}) #Set-Cookie handles this
