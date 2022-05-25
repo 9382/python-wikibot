@@ -76,12 +76,22 @@ def LookForBadCharacters(article):
         raw = raw.replace(beforehand,template.Text)
     article.RawContent = raw
     return anychanges
+
+pipescat = "Category:CS1 errors: empty unknown parameters"
+def RemoveExcessivePipes(article):
+    anychanges = False
+    raw = article.GetRawContent()
+    for template in GetCitations(article):
+        beforehand = template.Text
+        template.Text = regex.sub("\|[ \n]*}}","}}",regex.sub("\|[ \n]*\|","|",template.Text))
+        anychanges = anychanges or template.Text != beforehand
+        raw = raw.replace(beforehand,template.Text)
     article.RawContent = raw
     return anychanges
 
 def CheckPageForErrors(page):
     article = Article(page)
-    if not article.Namespace in ["Article","Draft"]:
+    if not article.Namespace in ["Article","Draft","User"]:
         print("Skipping page not in article namespace",page)
         return
     if not article.exists():
@@ -90,16 +100,21 @@ def CheckPageForErrors(page):
     try:
         anyformat = LookForBadFormat(article)
         anybadchar = LookForBadCharacters(article)
+        anyexcesspipes = RemoveExcessivePipes(article)
+    except Exception as exc:
+        log(f"Failed to process {page} due to the error of {exc}")
+    else:
         editsdone = []
+        #This is stupid
         if anyformat:
             editsdone.append("Changing |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
         if anybadchar:
             editsdone.append("Removing invisible characters (CS1 Error: [[Category:CS1 errors: invisible characters|invisible characters]]")
+        if anyexcesspipes:
+            editsdone.append("Removing excessive pipes (CS1 Error: [[Category:CS1 errors: empty unknown parameters|empty unknown parameters]]")
         if len(editsdone) > 0:
-            article.edit(article.RawContent+"\n",f"Fixing citations -> {', '.join(editsdone)}")
-        return True
-    except Exception as exc:
-        log(f"Failed to process {page} due to the error of {exc}")
+            article.edit(article.RawContent,f"Fixing citations -> {', '.join(editsdone)}")
+            return True
 
 h12 = 43200
 lastedittime = time.time()-h12
@@ -109,6 +124,7 @@ while True:
         CheckPageForErrors(f"User:{username}/sandbox")
         # IterateCategory(formatcat,CheckPageForErrors)
         # IterateCategory(badcharcat,CheckPageForErrors)
+        # IterateCategory(pipescat,CheckPageForErrors)
         lastedittime = time.time()
         log(f"Finished cycle of GeneralCitationFix (12h {h12}, c-p {time.time()-lastedittime})")
     else:
