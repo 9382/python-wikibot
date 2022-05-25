@@ -1,5 +1,18 @@
 #This task will go through all pages in Category:CS1_errors:_format_without_URL and fix clear-cut cases of the improper use of format
 
+cbignore = regex.compile("[^ \n]*?{{[Cc]bignore}}")
+def GetCitations(article):
+    citations = []
+    for template in article.GetTemplates():
+        if template.Template.lower() == "citation" or template.Template.lower().find("cite ") > -1:
+            #Check for {{cbignore}}
+            #This is stupid
+            templatePosition = article.RawContent.find(template.Text)
+            templateEnding = templatePosition+len(template.Text)
+            if not cbignore.search(article.GetRawContent()[templateEnding:templateEnding+99]):
+                citations.append(template)
+    return citations
+
 formatcat = "Category:CS1_errors:_format_without_URL"
 FormatLocator = regex.compile("\| *format *= *[^|}]+(\||})")
 FixCases = ["(^| )e?-?book","newspaper","magazine","letter","script","(hard|paper)(back|cover)","novel","print","dvd","blu-?ray","disc","obituary"]
@@ -13,20 +26,19 @@ Edge cases to consider:
 def LookForBadFormat(article):
     anychanges = False
     raw = article.GetRawContent()
-    for template in article.GetTemplates(): #Its a citation error, so look in citations
-        if template.Template.lower() == "citation" or template.Template.lower().find("cite ") > -1:
-            if "format" in template.Args and not "url" in template.Args: #Cause of the error
-                curformat = template.Args["format"].lower()
-                blacklisted = False
-                for reg in BlacklistedCases:
+    for template in GetCitations(article):
+        if "format" in template.Args and not "url" in template.Args: #Cause of the error
+            curformat = template.Args["format"].lower()
+            blacklisted = False
+            for reg in BlacklistedCases:
+                if regex.compile(reg).search(curformat):
+                    blacklisted = True #Dont attempt any fixes in this ref
+            if not blacklisted:
+                for reg in FixCases:
                     if regex.compile(reg).search(curformat):
-                        blacklisted = True #Dont attempt any fixes in this ref
-                if not blacklisted:
-                    for reg in FixCases:
-                        if regex.compile(reg).search(curformat):
-                            template.ChangeKey("format","type")
-                            raw = raw.replace(template.Original,template.Text)
-                            anychanges = True
+                        template.ChangeKey("format","type")
+                        raw = raw.replace(template.Original,template.Text)
+                        anychanges = True
     article.RawContent = raw
     return anychanges
 
@@ -34,32 +46,34 @@ badcharcat = "Category:CS1_errors:_invisible_characters"
 def LookForBadCharacters(article):
     anychanges = False
     raw = article.GetRawContent()
-    for template in article.GetTemplates(): #Its a citation error, so look in citations
-        if template.Template.lower() == "citation" or template.Template.lower().find("cite ") > -1:
-            for key,item in list(template.Args.items()):
-                for char in item:
-                    charord = ord(char)
-                    if charord == 0x200B: #Zero Width Space
-                        item = item.replace(char,"")
-                        anychanges = True
-                    elif charord == 0x200D: #Zero Width Joiner
-                        item = item.replace(char,"")
-                        anychanges = True
-                    elif charord == 0x200A: #Hair Space
-                        item = item.replace(char,"")
-                        anychanges = True
-                    elif charord == 0xA0: #Non-Breaking Space (Replace instead of remove)
-                        item = item.replace(char," ")
-                        anychanges = True
-                    elif charord >= 0 and charord <= 0x1F: #C0 control
-                        item = item.replace(char,"")
-                        anychanges = True
-                    elif charord >= 0x80 and charord <= 0x9F: #C1 control
-                        item = item.replace(char,"")
-                        anychanges = True
-                if type(key) == str:
-                    template.ChangeKeyData(key,item)
-            raw = raw.replace(template.Original,template.Text)
+    for template in GetCitations(article):
+        for key,item in list(template.Args.items()):
+            for char in item:
+                charord = ord(char)
+                #This is stupid
+                if charord == 0x200B: #Zero Width Space
+                    item = item.replace(char,"")
+                    anychanges = True
+                elif charord == 0x200D: #Zero Width Joiner
+                    item = item.replace(char,"")
+                    anychanges = True
+                elif charord == 0x200A: #Hair Space
+                    item = item.replace(char,"")
+                    anychanges = True
+                elif charord == 0xA0: #Non-Breaking Space (Replace instead of remove)
+                    item = item.replace(char," ")
+                    anychanges = True
+                elif charord >= 0 and charord <= 0x1F: #C0 control
+                    item = item.replace(char,"")
+                    anychanges = True
+                elif charord >= 0x80 and charord <= 0x9F: #C1 control
+                    item = item.replace(char,"")
+                    anychanges = True
+            if type(key) == str:
+                template.ChangeKeyData(key,item)
+        raw = raw.replace(template.Original,template.Text)
+    article.RawContent = raw
+    return anychanges
     article.RawContent = raw
     return anychanges
 
