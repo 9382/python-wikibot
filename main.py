@@ -187,6 +187,7 @@ class Article: #Creates a class representation of an article to contain function
         self.Namespace = GetNamespace(articleName)
         self.Content = None #Avoid getting directly outside of class functions
         self.RawContent = None #Same as above
+        self._raw = None #Dont change this
         self.Templates = None #Same as above
     def GetRawContent(self):
         if self.RawContent != None:
@@ -195,9 +196,11 @@ class Article: #Creates a class representation of an article to contain function
         if not rawtextreg.search(content):
             #Not an article, therefore flag as such and give up now.
             self.RawContent = False
+            self._raw = False
             return False
         correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",GetWithinTags(rawtextreg.search(content).group()))) #&lt; and &amp; autocorrection
         self.RawContent = correctedtext
+        self._raw = correctedtext
         return correctedtext
     def exists(self):
         if self.RawContent == None:
@@ -212,7 +215,7 @@ class Article: #Creates a class representation of an article to contain function
         self.Content = content
         return content
     def edit(self,newContent,editSummary):
-        if newContent == self.RawContent:
+        if newContent == self._raw:
             #If you really need to null edit, add a \n. MW will ignore it, but this wont
             log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
             return
