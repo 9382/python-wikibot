@@ -27,6 +27,7 @@ def LookForBadFormat(article):
     anychanges = False
     raw = article.GetRawContent()
     for template in GetCitations(article):
+        beforehand = template.Text
         if "format" in template.Args and not "url" in template.Args: #Cause of the error
             curformat = template.Args["format"].lower()
             blacklisted = False
@@ -37,7 +38,7 @@ def LookForBadFormat(article):
                 for reg in FixCases:
                     if regex.compile(reg).search(curformat):
                         template.ChangeKey("format","type")
-                        raw = raw.replace(template.Original,template.Text)
+                        raw = raw.replace(beforehand,template.Text)
                         anychanges = True
     article.RawContent = raw
     return anychanges
@@ -47,6 +48,7 @@ def LookForBadCharacters(article):
     anychanges = False
     raw = article.GetRawContent()
     for template in GetCitations(article):
+        beforehand = template.Text
         for key,item in list(template.Args.items()):
             for char in item:
                 charord = ord(char)
@@ -71,7 +73,7 @@ def LookForBadCharacters(article):
                     anychanges = True
             if type(key) == str:
                 template.ChangeKeyData(key,item)
-        raw = raw.replace(template.Original,template.Text)
+        raw = raw.replace(beforehand,template.Text)
     article.RawContent = raw
     return anychanges
     article.RawContent = raw
