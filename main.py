@@ -11,6 +11,7 @@ import time
 import os
 #For an explenation of the 3 config options below, please see the .env-example file
 SUBMITEDITS = dotenv_values()["SUBMITEDITS"].lower() == "true"
+INDEV = dotenv_values()["INDEV"].lower() == "true"
 EnabledTasks = dotenv_values()["TASKS"].lower().replace("; ",";").split(";")
 maxEditsPerMinute = int(dotenv_values()["EDITSPERMIN"])
 
@@ -222,6 +223,8 @@ class Article: #Creates a class representation of an article to contain function
         if not self.exists():
             #Will still continue to submit the edit, even if this is the case
             log(f"Warning: Editing article that doesnt exist ({self.Article})")
+        if INDEV and not self.Namespace in ["User","User talk"]:
+            return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article})")
         ChangeWikiPage(self.Article,newContent,editSummary)
     def GetWikiLinks(self):
         if not self.exists():
