@@ -77,7 +77,7 @@ def LookForBadCharacters(article):
     article.RawContent = raw
     return anychanges
 
-pipescat = "Category:CS1 errors: empty unknown parameters"
+pipescat = "Category:CS1_errors:_empty_unknown_parameters"
 def RemoveExcessivePipes(article):
     anychanges = False
     raw = article.GetRawContent()
@@ -86,6 +86,19 @@ def RemoveExcessivePipes(article):
         template.Text = regex.sub("\|[ \n]*}}","}}",regex.sub("\|[ \n]*\|","|",template.Text))
         anychanges = anychanges or template.Text != beforehand
         raw = raw.replace(beforehand,template.Text)
+    article.RawContent = raw
+    return anychanges
+
+isbncat = "Category:CS1_errors:_ISBN"
+def CheckISBNs(article):
+    anychanges = False
+    raw = article.GetRawContent()
+    for template in GetCitations(article):
+        if "isbn" in template.Args:
+            beforehand = template.Text
+            isbn = template.ChangeKeyData("isbn",regex.sub(".* ([\d\-]{10,})","\\1",template.Args["isbn"]))
+            anychanges = anychanges or template.Text != beforehand
+            raw = raw.replace(beforehand,template.Text)
     article.RawContent = raw
     return anychanges
 
@@ -101,17 +114,20 @@ def CheckPageForErrors(page):
         anyformat = LookForBadFormat(article)
         anybadchar = LookForBadCharacters(article)
         anyexcesspipes = RemoveExcessivePipes(article)
+        anyisbn = CheckISBNs(article)
     except Exception as exc:
         log(f"Failed to process {page} due to the error of {exc}")
     else:
         editsdone = []
         #This is stupid
         if anyformat:
-            editsdone.append("Changing |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
+            editsdone.append("Changed |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
         if anybadchar:
-            editsdone.append("Removing invisible characters (CS1 Error: [[Category:CS1 errors: invisible characters|invisible characters]]")
+            editsdone.append("Removed invisible characters (CS1 Error: [[Category:CS1 errors: invisible characters|invisible characters]]")
         if anyexcesspipes:
-            editsdone.append("Removing excessive pipes (CS1 Error: [[Category:CS1 errors: empty unknown parameters|empty unknown parameters]]")
+            editsdone.append("Removed excessive pipes (CS1 Error: [[Category:CS1 errors: empty unknown parameters|empty unknown parameters]]")
+        if anyisbn:
+            editsdone.append("Fixed invalid ISBN characters (CS1 Error: [[Category:CS1 errors: ISBN|ISBN]]")
         if len(editsdone) > 0:
             article.edit(article.RawContent,f"Fixing citations -> {', '.join(editsdone)}")
             return True
