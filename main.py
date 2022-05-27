@@ -215,14 +215,16 @@ class Article: #Creates a class representation of an article to contain function
         content = wholepagereg.search(request("get",enwiki+"wiki/"+self.Article).text).group()[42:-6]
         self.Content = content
         return content
-    def edit(self,newContent,editSummary):
+    def edit(self,newContent,editSummary,bypassExclusion=False):
         if newContent == self._raw:
             #If you really need to null edit, add a \n. MW will ignore it, but this wont
-            log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
-            return
+            return log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
         if not self.exists():
             #Will still continue to submit the edit, even if this is the case
-            log(f"Warning: Editing article that doesnt exist ({self.Article})")
+            log(f"Warning: Editing article that doesnt exist ({self.Article}). Continuing anyways...")
+        if self.HasExclusion() and not bypassExclusion:
+            #Its been requested we stay away, so we will
+            return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
         if INDEV and not self.Namespace in ["User","User talk"]:
             return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article})")
         ChangeWikiPage(self.Article,newContent,editSummary)
@@ -239,6 +241,25 @@ class Article: #Creates a class representation of an article to contain function
             return []
         self.Templates = [Template(x) for x in templatesreg.findall(self.RawContent)]
         return self.Templates
+    def HasExclusion(self):
+        #If the bot is excluded from editing a page, this returns True
+        for template in self.GetTemplates():
+            if template.Template.lower() == "nobots": #We just arent allowed here
+                return True
+            if template.Template.lower() == "bots": #Check |deny= and |allow=
+                if "allow" in template.Args:
+                    for bot in template.Args["allow"].split(","):
+                        bot = bot.lower().strip()
+                        if bot == username.lower() or bot == "all": #Allowed all or specific
+                            return False
+                    return True #Not in the "allowed" list, therefore we dont get to be here
+                if "deny" in template.Args:
+                    for bot in template.Args["deny"].split(","):
+                        bot = bot.lower().strip()
+                        if bot == username.lower() or bot == "all": #Banned all or specific
+                            return True
+                        if bot == "none": #Allow all
+                            return False
 
 #NOTE: This section is a mess. Its also vital cause its how any tasks get their information. Do cleanup at some point.
 def GetReferenceParameters(reference):
