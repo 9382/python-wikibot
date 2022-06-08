@@ -50,7 +50,7 @@ def CheckArchiveLocations(page):
                     log("[FixArchiveLocation] "+page+" does not seem to be malformed. Unsure how they ended up here. Trying a null edit...")
                     content = content + "\n"
     if content != article.RawContent:
-        article.edit(content,"Fix archive location for Lowercase Sigmabot III ([[User:MiszaBot/config#Parameters explained|More info]])")
+        article.edit(content,f"Fix archive location for Lowercase Sigmabot III ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report issues]])")
     return True
 
 # CheckArchiveLocations("User_talk:Aidan9382-Bot/sandbox")
