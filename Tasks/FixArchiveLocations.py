@@ -10,7 +10,7 @@ def CheckArchiveLocations(page):
     currentLocation = page.replace("_"," ")
     for template in article.GetTemplates():
         if template.Template == "User:MiszaBot/config":
-            if "archive" in template.Args:
+            if "archive" in template.Args and not "key" in template.Args:
                 archiveLocation = template.Args["archive"]
                 #Attempt to fix the archive location
                 #Note that we should try to figure out the formatting before-hand to keep it consistent
