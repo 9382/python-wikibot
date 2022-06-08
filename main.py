@@ -9,7 +9,7 @@ import requests
 import random
 import time
 import os
-#For an explenation of the 3 config options below, please see the .env-example file
+#For an explenation of the config options below, please see the .env-example file
 SUBMITEDITS = dotenv_values()["SUBMITEDITS"].lower() == "true"
 INDEV = dotenv_values()["INDEV"].lower() == "true"
 EnabledTasks = dotenv_values()["TASKS"].lower().replace("; ",";").split(";")
@@ -226,13 +226,16 @@ class Article: #Creates a class representation of an article to contain function
             #Its been requested we stay away, so we will
             return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
         if INDEV and not self.Namespace in ["User","User talk"]:
-            return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article})")
+            return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article}, {self.Namespace})")
         ChangeWikiPage(self.Article,newContent,editSummary)
-    def GetWikiLinks(self):
+    def GetWikiLinks(self,afterPoint=None):
         if not self.exists():
             return []
         #Does what the name suggests. Note that this is looking for GetWikiText, not GetRawWikiText. Consider changing that
-        return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(self.GetContent())]
+        if afterPoint:
+            return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(self.GetContent()[self.GetContent().find(afterPoint):])]
+        else:
+            return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(self.GetContent())]
     def GetTemplates(self):
         if self.Templates != None:
             return self.Templates
@@ -287,7 +290,7 @@ def IterateCategory(category,torun):
     catpage = Article(category)
     if not catpage.exists():
         log(f"Attempting to iterate {category} despite it not existing")
-    links = catpage.GetWikiLinks()
+    links = catpage.GetWikiLinks('ion">learn more</a>).')
     for page in links:
         if torun(page):
             lastpage = page
@@ -295,7 +298,7 @@ def IterateCategory(category,torun):
     while lastpage:
         newlastpage = ""
         catpage = Article(category+"?from="+lastpage)
-        links = catpage.GetWikiLinks()
+        links = catpage.GetWikiLinks('ion">learn more</a>).')
         for page in links:
             if torun(page):
                 newlastpage = page
