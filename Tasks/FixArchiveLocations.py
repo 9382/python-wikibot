@@ -28,6 +28,7 @@ def CheckArchiveLocations(page):
                         continue
                     #else: cry(). its GIGO time
                     #Now we try to find any form of archive location at the end - maybe they use a custom format
+                    #A potential call to the move or edit history and some quick checks may help rare cases, but may also be excessive.
                     splitSections = archiveLocation.split("/")
                     latestOccurance = -1
                     index = 0
