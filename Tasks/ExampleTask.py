@@ -1,6 +1,7 @@
 #Just appends text to the bot's sandbox page
 
-Template = f"User:{username}/sandbox"
-rawtext = GetWikiRawText(Template)
-ChangeWikiPage(Template,rawtext+"\nContent","Automated Test edit")
-print("Test edit done")
+while True:
+	page = Article(f"User:{username}/sandbox")
+	page.edit(page.GetRawContent()+"\nContent","Testing /panic")
+	print("Test edit done")
+	time.sleep(30)
