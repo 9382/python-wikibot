@@ -31,28 +31,7 @@ def CheckArchiveLocations(page):
                     #If the above check fails, vandalism is a likely scenario
                     #While we could code something to check previous revisions or look for naming patterns, we could also leave it to humans
                     #And thats what we shall do
-
-                    #After a recent change to the above code, this bottom code may not even run. It is being left in for now "just in case", but it can be safely ignored
-                    log(f"Somehow reached the panic GIGO step in FixArchiveLocations for {page}. This is probably worth looking into")
-
-                    splitSections = archiveLocation.split("/")
-                    latestOccurance = -1
-                    index = 0
-                    for section in splitSections:
-                        if section.lower().find("archive") > -1 and latestOccurance <= 0: #Presumably, the archives start here
-                            # The <= 0 check is for the chance that some page, for some reason, is titled Archive or similar
-                            latestOccurance = index #Find the last one. Who knows, maybe the base page name has archive
-                        index += 1
-                    if latestOccurance == -1: #No archive subpage format found, defaulting to Archive %(counter)d
-                        template.ChangeKeyData("archive",currentLocation+r"/Archive %(counter)d")
-                    elif latestOccurance == 0: #Rare and annoying edge case
-                        if currentLocation.lower().find("archive") > -1: #No archive present - just the page title
-                            template.ChangeKeyData("archive",currentLocation+r"/Archive %(counter)d")
-                        else: #Probably forgot page title
-                            template.ChangeKeyData("archive",currentLocation+"/".join(splitSections[latestOccurance:]))
-                    else: #Normal case
-                        template.ChangeKeyData("archive",currentLocation+"/"+"/".join(splitSections[latestOccurance:]))
-                    content = content.replace(template.Original,template.Text)
+                    log(f"Somehow reached the GIGO step in FixArchiveLocations for {page}. This should be fixed by a human and considered for fix by this script")
                 elif content == article.RawContent: #The earlier regex.sub caught nothing and theres no archive fail - this shouldnt happen
                     log(f"[FixArchiveLocation] {page} does not seem to be malformed. Unsure how they ended up here. Trying a null edit...")
                     content = content + "\n"
