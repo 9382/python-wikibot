@@ -183,9 +183,8 @@ class Template: #Parses a template and returns a class object representing it
 activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
 wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
-wikilinkreg = regex.compile('<a href="/wiki/[^"]+" title="[^"]+">')
+wikilinkreg = regex.compile('<a href="/wiki/([^"]+)" (class="[^"]*" )?title="[^"]+">')
 templatesreg = regex.compile('{{[\s\S]+?}}')
-WLSpecificreg = regex.compile('"/wiki/[^"]+')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
         self.Article = articleName
@@ -242,9 +241,9 @@ class Article: #Creates a class representation of an article to contain function
             return []
         #Does what the name suggests. Note that this is looking for GetWikiText, not GetRawWikiText. Consider changing that
         if afterPoint:
-            return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(self.GetContent()[self.GetContent().find(afterPoint):])]
+            return [x[0] for x in wikilinkreg.findall(self.GetContent()[self.GetContent().find(afterPoint):])]
         else:
-            return [WLSpecificreg.search(x).group()[7:] for x in wikilinkreg.findall(self.GetContent())]
+            return [x[0] for x in wikilinkreg.findall(self.GetContent())]
     def GetTemplates(self):
         if self.Templates != None:
             return self.Templates
