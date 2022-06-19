@@ -177,6 +177,10 @@ class Template: #Parses a template and returns a class object representing it
         target = self.Text[keylocation.start()+1:].split("|")[0]
         self.Text = SubstituteIntoString(self.Text,target.replace(olddata,newdata),keylocation.start()+1,keylocation.start()+len(target)+1)
 
+# class Revision: #For getting the history of pages. Currently unimplemented
+#     def __init__(self,revisionid)
+
+activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
 wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/[^"]+" title="[^"]+">')
@@ -216,6 +220,11 @@ class Article: #Creates a class representation of an article to contain function
         self.Content = content
         return content
     def edit(self,newContent,editSummary,bypassExclusion=False):
+        if activelyStopped:
+            log(f"Warning: Can't push edits while in panic mode (Once sorted, change User:{username}/panic to re-enable). Thread will now hang until able to resume...")
+            while activelyStopped:
+                time.sleep(10)
+            print("We are no loner panicking. Exiting pause...")
         if newContent == self._raw:
             #If you really need to null edit, add a \n. MW will ignore it, but this wont
             return log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
@@ -343,11 +352,14 @@ for file,contents in execList.items():
         log(f"[Tasks] Task {file} loading error -> {exc}")
 log("Finished loading tasks")
 while True:
-    time.sleep(120)
+    time.sleep(60)
     tasks = threading.active_count()
     log(f"Active task count: {tasks-1}")
     if tasks == 1:
-        log("All tasks seem to have been terminated or finished. Exiting script in 15 seconds..")
-        time.sleep(15)
+        log("All tasks seem to have been terminated or finished")
         break
+    if Article(f"User:{username}/panic").GetRawContent().strip() == "true":
+        activelyStopped = True
+    else:
+        activelyStopped = False
 input("Press enter to exit...")
