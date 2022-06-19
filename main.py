@@ -14,6 +14,7 @@ SUBMITEDITS = dotenv_values()["SUBMITEDITS"].lower() == "true"
 INDEV = dotenv_values()["INDEV"].lower() == "true"
 EnabledTasks = dotenv_values()["TASKS"].lower().replace("; ",";").split(";")
 maxEditsPerMinute = int(dotenv_values()["EDITSPERMIN"])
+maxEdits = int(dotenv_values()["MAXEDITS"])
 
 def currentDate():
     #The current date in YYYY-MM-DD hh:mm:ss
@@ -114,9 +115,14 @@ def ChangeWikiPage(article,newcontent,editsummary):
     #Not in the class as we need to cenrtalise lastEditTime
     global lastEditTime
     global editCount
+    if editCount >= maxEdits and maxEdits > 0:
+        log(f"Warning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
+        while True:
+            time.sleep(60)
+            print("Bot hit edit count limit. We aren't going anywhere now")
     editCount += 1
-    if editCount % 20 == 0:
-        print("Edit count:",editCount) #Purely statistical
+    if editCount % 5 == 0:
+        print("Edit count:",editCount) #Purely statistical for the console
     if not SUBMITEDITS:
         return print(f"Not submitting changes to {article} as SUBMITEDITS is set to False")
     log(f"Making edits to {article}:\n    {editsummary}")
@@ -334,7 +340,7 @@ log("Finished loading tasks")
 while True:
     time.sleep(60)
     tasks = threading.active_count()
-    log(f"Active task count: {tasks-1}")
+    # log(f"Active task count: {tasks-1}")
     if tasks == 1:
         log("All tasks seem to have been terminated or finished")
         break
