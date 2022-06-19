@@ -1,4 +1,5 @@
 #This task will go through all pages in Category:CS1_errors:_format_without_URL and fix clear-cut cases of the improper use of format
+#This task is currently withdrawn / denied and doesnt have a hopeful outlook
 
 cbignore = regex.compile("[^ \n]*?{{[Cc]bignore}}")
 def GetCitations(article):

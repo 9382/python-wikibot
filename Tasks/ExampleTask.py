@@ -1,4 +1,4 @@
-#Just appends text to the bot's sandbox page
+#Just appends text to the bot's sandbox page as a demonstration
 
 while True:
 	page = Article(f"User:{username}/sandbox")

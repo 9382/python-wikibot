@@ -1,3 +1,5 @@
+#This task fixes the archive parameter for the {{User:MiszaBot/config}} template
+
 def CheckArchiveLocations(page):
     article = Article(page)
     if not article.exists():
