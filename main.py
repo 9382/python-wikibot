@@ -190,9 +190,9 @@ class Article: #Creates a class representation of an article to contain function
     def __init__(self,articleName):
         self.Article = articleName
         self.Namespace = GetNamespace(articleName)
+        self._raw = None #Dont change this
         self.Content = None #Avoid getting directly outside of class functions
         self.RawContent = None #Same as above
-        self._raw = None #Dont change this
         self.Templates = None #Same as above
     def GetRawContent(self):
         if self.RawContent != None:
