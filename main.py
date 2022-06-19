@@ -273,25 +273,6 @@ class Article: #Creates a class representation of an article to contain function
                         if bot == "none": #Allow all
                             return False
 
-#NOTE: This section is a mess. Its also vital cause its how any tasks get their information. Do cleanup at some point.
-def GetReferenceParameters(reference):
-    #Note: Possibly slightly buggy. Be careful and do testing at some point to find out
-    result = {}
-    starting,ending = reference.find("{{"),reference.find("}}")
-    for param in reference[starting+2:ending].split("|"):
-        split = param.split("=")
-        if not "__TEMPLATE" in result:
-            result["__TEMPLATE"] = param.strip()
-        else:
-            try:
-                result[split[0].strip()] = "=".join(split[1:]).strip()
-            except:
-                continue #Unnammed parameter (Probably a ||)
-    return result
-RefLocator = regex.compile("<ref[^>]*>{{[^}]+}}</ref>") #Note: Only cares about refs using a {{template}}
-def GetReferences(text):
-    return RefLocator.findall(text)
-
 def IterateCategory(category,torun):
     #Iterates all wikilinks of a category, even if multi-paged
     #Note: If the page scanning is successful, make sure to return True, or else this wont know
