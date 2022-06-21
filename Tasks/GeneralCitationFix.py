@@ -142,7 +142,7 @@ while True:
         # IterateCategory(formatcat,CheckPageForErrors)
         # IterateCategory(badcharcat,CheckPageForErrors)
         # IterateCategory(pipescat,CheckPageForErrors)
-        lastedittime = time.time()
+        lastedittime = lastedittime + h12
         log(f"Finished cycle of GeneralCitationFix (12h {h12}, c-p {time.time()-lastedittime})")
     else:
         time.sleep(1)
