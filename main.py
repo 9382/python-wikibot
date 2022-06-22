@@ -190,7 +190,7 @@ activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
 wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+)" (class="[^"]*" )?title="[^"]+">')
-templatesreg = regex.compile('({{([^{}]+({{[\s\S]+}})?)+}})')
+templatesreg = regex.compile('({{([^{}]+({{[^}]+}})?)+}})')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
         self.Article = articleName
