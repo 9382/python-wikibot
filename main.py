@@ -190,7 +190,7 @@ activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
 wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+)" (class="[^"]*" )?title="[^"]+">')
-templatesreg = regex.compile('{{[\s\S]+?}}')
+templatesreg = regex.compile('({{([^{}]+({{[\s\S]+}})?)+}})')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
         self.Article = articleName
@@ -256,7 +256,7 @@ class Article: #Creates a class representation of an article to contain function
         if not self.exists():
             self.Templates = []
             return []
-        self.Templates = [Template(x) for x in templatesreg.findall(self.RawContent)]
+        self.Templates = [Template(x[0]) for x in templatesreg.findall(self.RawContent)]
         return self.Templates
     def HasExclusion(self):
         #If the bot is excluded from editing a page, this returns True
