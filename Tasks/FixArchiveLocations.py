@@ -1,4 +1,5 @@
 #This task fixes the archive parameter for the {{User:MiszaBot/config}} template
+import urllib.parse
 
 def CheckArchiveLocations(page):
     article = Article(page)
@@ -8,7 +9,7 @@ def CheckArchiveLocations(page):
         return
     content = article.GetRawContent()
     content = regex.sub("\n?\[\[Category:Pages where archive parameter is not a subpage\|?[^\]]*\]\]","",content) #Shouldn't be explicitly added
-    currentLocation = page.replace("_"," ")
+    currentLocation = urllib.parse.unquote(page.replace("_"," "))
     for template in article.GetTemplates():
         if template.Template == "User:MiszaBot/config":
             if "archive" in template.Args and not "key" in template.Args:
