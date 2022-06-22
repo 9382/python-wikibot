@@ -45,7 +45,7 @@ curtime = time.time()-looptime
 while True:
     if curtime + looptime < time.time():
         log("[FixArchiveLocation] Beginning cycle")
-        curtime = curime + looptime
+        curtime = curtime + looptime
         IterateCategory("Category:Pages where archive parameter is not a subpage",CheckArchiveLocations)
         log(f"[FixArchiveLocation] Finished cycle in {time.time()-curtime} seconds. Next cycle will occur in {curtime+looptime-time.time()} seconds")
     else:
