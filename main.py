@@ -344,7 +344,8 @@ while True:
     if tasks == 1:
         log("All tasks seem to have been terminated or finished")
         break
-    if Article(f"User:{username}/panic").GetRawContent().strip() == "true":
+    panic = Article(f"User:{username}/panic")
+    if panic.exists() and panic.GetRawContent().strip() == "true":
         activelyStopped = True
     else:
         activelyStopped = False
