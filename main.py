@@ -180,7 +180,7 @@ class Template: #Parses a template and returns a class object representing it
 
 activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>([^<]+)</textarea>')
-wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
+wholepagereg = regex.compile('<div class="mw-parser-output">([\s\S]+)<!-- \nNewPP limit report') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+)" (class="[^"]*" )?title="[^"]+">')
 templatesreg = regex.compile('({{([^{}]+({{[^}]+}})?)+}})')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
@@ -209,12 +209,12 @@ class Article: #Creates a class representation of an article to contain function
         if self.RawContent == None:
             self.GetRawContent()
         return self.RawContent != False
-    def GetContent(self):
+    def GetContent(self): #Very messy, dont use if you dont need
         if self.Content:
             return self.Content
         if not self.exists():
             return
-        content = wholepagereg.search(request("get",enwiki+"wiki/"+self.Article).text).group()[42:-6]
+        content = wholepagereg.search(request("get",enwiki+"wiki/"+self.Article).text).group(1)
         self.Content = content
         return content
     def edit(self,newContent,editSummary,bypassExclusion=False):
