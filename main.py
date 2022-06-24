@@ -50,14 +50,6 @@ else:
     log("SUBMITEDITS is set to False. Edits will not be requested, only simulated")
 username,password = dotenv_values()["USER"],dotenv_values()["PASS"]
 enwiki = "https://en.wikipedia.org/"
-getwithintagsreg = regex.compile('>[^<]+') #Quality
-def GetWithinTags(text):
-    #Baseplate regex
-    return getwithintagsreg.search(text).group()[1:]
-InQuotereg = regex.compile('"[^"]*')
-def GetInQuote(text):
-    #Baseplate regex
-    return InQuotereg.search(text).group()[1:]
 cookies = {}
 def request(method,page,**kwargs):
     global cookies
@@ -187,7 +179,7 @@ class Template: #Parses a template and returns a class object representing it
 #     def __init__(self,revisionid)
 
 activelyStopped = False
-rawtextreg = regex.compile('<textarea [^>]+>[^<]+</textarea>')
+rawtextreg = regex.compile('<textarea [^>]+>([^<]+)</textarea>')
 wholepagereg = regex.compile('<div id="bodyContent" class="vector-body">(.*\n)+<div c') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+)" (class="[^"]*" )?title="[^"]+">')
 templatesreg = regex.compile('({{([^{}]+({{[^}]+}})?)+}})')
@@ -203,12 +195,13 @@ class Article: #Creates a class representation of an article to contain function
         if self.RawContent != None:
             return self.RawContent
         content = request("get",f"{enwiki}wiki/{self.Article}?action=edit").text
-        if not rawtextreg.search(content):
+        rawtext = rawtextreg.search(content)
+        if not rawtext:
             #Not an article, therefore flag as such and give up now.
             self.RawContent = False
             self._raw = False
             return False
-        correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",GetWithinTags(rawtextreg.search(content).group()))) #&lt; and &amp; autocorrection
+        correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",rawtext.group(1))) #&lt; and &amp; autocorrection
         self.RawContent = correctedtext
         self._raw = correctedtext
         return correctedtext
