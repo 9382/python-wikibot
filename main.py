@@ -10,11 +10,17 @@ import random
 import time
 import os
 #For an explenation of the config options below, please see the .env-example file
-SUBMITEDITS = dotenv_values()["SUBMITEDITS"].lower() == "true"
-INDEV = dotenv_values()["INDEV"].lower() == "true"
-EnabledTasks = dotenv_values()["TASKS"].lower().replace("; ",";").split(";")
-maxEditsPerMinute = int(dotenv_values()["EDITSPERMIN"])
-maxEdits = int(dotenv_values()["MAXEDITS"])
+envvalues = dotenv_values()
+SUBMITEDITS = envvalues["SUBMITEDITS"].lower() == "true"
+INDEV = envvalues["INDEV"].lower() == "true"
+EnabledTasks = envvalues["TASKS"].lower().replace("; ",";").split(";")
+maxEditsPerMinute = int(envvalues["EDITSPERMIN"])
+maxEdits = int(envvalues["MAXEDITS"])
+
+isVerbose = envvalues["VERBOSE"].lower() == "true"
+def verbose(origin,content):
+    if isVerbose:
+        print(f"[Verbose {origin}] {content}")
 
 def currentDate():
     #The current date in YYYY-MM-DD hh:mm:ss
@@ -55,6 +61,7 @@ def request(method,page,**kwargs):
     global cookies
     request = getattr(requests,method)(page,cookies=cookies,**kwargs)
     if "set-cookie" in request.headers:
+        verbose("request","Attempting to note down some new cookies")
         #Handles cookies. Mostly for getting cookies from logging in
         setcookies = request.headers["set-cookie"].split(", ")
         for cookie in setcookies:
@@ -68,7 +75,7 @@ def request(method,page,**kwargs):
 def GetTokenForType(actiontype):
     return request("get",enwiki+f"w/api.php?action=query&format=json&meta=tokens&type=*").json()["query"]["tokens"][f"{actiontype}token"]
 boundary = "-----------PYB"+str(random.randint(1e9,9e9))
-print("Using boundary",boundary)
+verbose("request",f"Using boundary {boundary}")
 def CreateFormRequest(location,d):
     #This seems to be the approach that worked consistently for me, so thats what is used for all requests.
     finaltext = ""
@@ -109,7 +116,7 @@ def ChangeWikiPage(article,newcontent,editsummary):
         log(f"Warning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
         while True:
             time.sleep(60)
-            print("Bot hit edit count limit. We aren't going anywhere now")
+            log("Bot hit edit count limit. We aren't going anywhere now")
     editCount += 1
     if editCount % 5 == 0:
         print("Edit count:",editCount) #Purely statistical for the console
@@ -140,6 +147,8 @@ class Template: #Parses a template and returns a class object representing it
         self.Text = templateText
         templateArgs = templateText[2:-2].split("|")
         self.Template = templateArgs[0].strip()
+        if len(self.Text) > 1000:
+            verbose("Template",f"{self.Template} has a total length of {len(self.Text)}, which is larger than what is normally expected")
         args = {}
         for arg in templateArgs:
             splitarg = arg.split("=")
@@ -159,6 +168,8 @@ class Template: #Parses a template and returns a class object representing it
     #Simply use the below functions, and then ask for self.Text for the new representation to use
     def ChangeKey(self,key,newkey): #Replaces one key with another, retaining the original data
         #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX.
+        if type(key) == int or key.isnumeric():
+            verbose("Template",f"CK was told to change {key} to {newkey} in {self.Template} despite it being a numerical index")
         if not key in self.Args:
             raise KeyError(f"{key} is not a key in the Template")
         self.Args[newkey] = self.Args[key]
@@ -168,6 +179,8 @@ class Template: #Parses a template and returns a class object representing it
         self.Text = SubstituteIntoString(self.Text,keytext.replace(key,newkey),*keylocation.span())
     def ChangeKeyData(self,key,newdata): #Changes the contents of the key
         #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX.
+        if type(key) == int or key.isnumeric():
+            verbose("Template",f"CKD was told to change {key} to {newkey} in {self.Template} despite it being a numerical index")
         if not key in self.Args:
             raise KeyError(f"{key} is not a key in the Template")
         olddata = self.Args[key]
@@ -205,6 +218,7 @@ class Article: #Creates a class representation of an article to contain function
             #Not an article, therefore flag as such and give up now.
             self.RawContent = False
             self._raw = False
+            verbose("Article",f"{self.Article} failed the rawtextreg search")
             return False
         correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",rawtext.group(1))) #&lt; and &amp; autocorrection
         self.RawContent = correctedtext
@@ -231,7 +245,7 @@ class Article: #Creates a class representation of an article to contain function
             log(f"Warning: Can't push edits while in panic mode (Once sorted, change User:{username}/panic to re-enable). Thread will now hang until able to resume...")
             while activelyStopped:
                 time.sleep(10)
-            print("We are no loner panicking. Exiting pause...")
+            log("We are no loner panicking. Exiting pause...")
         if newContent == self._raw:
             #If you really need to null edit, add a \n. MW will ignore it, but this wont
             return log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
@@ -249,9 +263,16 @@ class Article: #Creates a class representation of an article to contain function
             return []
         #Does what the name suggests. Note that this is looking for GetWikiText, not GetRawWikiText. Consider changing that
         if afterPoint:
-            return [x[0] for x in wikilinkreg.findall(self.GetContent()[self.GetContent().find(afterPoint):])]
+            textAfter = self.GetContent()[self.GetContent().find(afterPoint):]
+            if len(textAfter) < 20:
+                verbose("Article",f"'{self.Article}' used afterPoint {afterPoint} just to get a size of {len(textAfter)}. Resulting text: {textAfter}")
+            result = [x[0] for x in wikilinkreg.findall(textAfter)]
+            verbose("Article",f"'{self.Article}' gave {len(result)} wikilinks with afterPoint {afterPoint}")
+            return result
         else:
-            return [x[0] for x in wikilinkreg.findall(self.GetContent())]
+            result = [x[0] for x in wikilinkreg.findall(self.GetContent())]
+            verbose("Article",f"'{self.Article}' gave {len(result)} wikilinks")
+            return result
     def GetTemplates(self):
         if self.Templates != None:
             return self.Templates
@@ -259,26 +280,33 @@ class Article: #Creates a class representation of an article to contain function
             self.Templates = []
             return []
         self.Templates = [Template(x[0]) for x in templatesreg.findall(self.RawContent)]
+        verbose("Article",f"Registered {len(self.Templates)} templates for {self.Article}")
         return self.Templates
     def HasExclusion(self):
         #If the bot is excluded from editing a page, this returns True
         for template in self.GetTemplates():
             if template.Template.lower() == "nobots": #We just arent allowed here
+                verbose("HasExclusion","nobots presence found")
                 return True
             if template.Template.lower() == "bots": #Check |deny= and |allow=
                 if "allow" in template.Args:
                     for bot in template.Args["allow"].split(","):
                         bot = bot.lower().strip()
                         if bot == username.lower() or bot == "all": #Allowed all or specific
+                            verbose("HasExclusion","bots presence found but permitted")
                             return False
+                    verbose("HasExclusion","bots presence found, not permitted")
                     return True #Not in the "allowed" list, therefore we dont get to be here
                 if "deny" in template.Args:
                     for bot in template.Args["deny"].split(","):
                         bot = bot.lower().strip()
                         if bot == username.lower() or bot == "all": #Banned all or specific
+                            verbose("HasExclusion","bots presence found, denied")
                             return True
                         if bot == "none": #Allow all
+                            verbose("HasExclusion","bots presence found, not denied")
                             return False
+                verbose("HasExclusion","Exclusion check has managed to not hit a return")
 
 def IterateCategory(category,torun):
     #Iterates all wikilinks of a category, even if multi-paged
@@ -292,6 +320,8 @@ def IterateCategory(category,torun):
         if torun(page):
             lastpage = page
     #If we dont get a lastpage in the first place, its either empty, or the task needs configuring. Escape either way
+    if not lastpage:
+        verbose("IterateCategory",f"'{category}' had no returned lastpage on its first try")
     while lastpage:
         newlastpage = ""
         catpage = Article(category+"?from="+lastpage)
@@ -324,8 +354,10 @@ execList = {}
 #Odd approach but it works
 for file in os.listdir("Tasks"):
     if not file.endswith(".py"):
+        verbose("Task Loader",f"{file} doesn't end with .py, it shouldn't be within the /Tasks")
         continue
     if not os.path.isfile("Tasks/"+file):
+        verbose("Task Loader",f"{file} is a subfolder and shouldn't be within the /Tasks")
         continue
     if file[:-3].lower() in EnabledTasks: #Removes .py extension
         execList[file] = bytes("#coding: utf-8\n","utf-8")+open("Tasks/"+file,"rb").read()
@@ -347,8 +379,11 @@ while True:
         log("All tasks seem to have been terminated or finished")
         break
     panic = Article(f"User:{username}/panic")
-    if panic.exists() and panic.GetRawContent().strip() == "true":
-        activelyStopped = True
+    if panic.exists():
+        if panic.GetRawContent().strip() == "true":
+            activelyStopped = True
+        else:
+            activelyStopped = False
     else:
-        activelyStopped = False
+        verbose("Main Thread",f"Panic page (User:{username}/panic) doesn't exist")
 input("Press enter to exit...")

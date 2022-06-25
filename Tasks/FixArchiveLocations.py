@@ -18,10 +18,12 @@ def CheckArchiveLocations(page):
                 #Note that we should try to figure out the formatting before-hand to keep it consistent
                 #Note that this could easily fall flat when presented with GIGO as its a bit of a shot in the dark
                 if not archiveLocation.startswith(currentLocation+"/"): #Not a subpage
+                    verbose("Archive Fix",f"{page} currently has {archiveLocation}, but we should have something with {currentLocation}")
                     #Most common case: Result of a page move, no GIGO problems
-                    existingArchive = regex.compile("(/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee]([Ss]/| ).+)").search(archiveLocation)
+                    existingArchive = regex.compile("(/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee]([Ss]/| |%).+)").search(archiveLocation)
                     if existingArchive:
                         wantedLocation = existingArchive.group()
+                        verbose("Archive Fix",f"Attempting to preserve {wantedLocation}")
                         if wantedLocation[0] == "/": #Stupid but eh
                             template.ChangeKeyData("archive",currentLocation+wantedLocation)
                         else:
