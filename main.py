@@ -102,7 +102,7 @@ lastEditTime = 0
 editCount = 0
 def ChangeWikiPage(article,newcontent,editsummary):
     #Submits edits to pages automatically (since the form is a bit of a nightmare)
-    #Not in the class as we need to cenrtalise lastEditTime
+    #Not in the class as we need to centralise lastEditTime
     global lastEditTime
     global editCount
     if editCount >= maxEdits and maxEdits > 0:
@@ -122,8 +122,11 @@ def ChangeWikiPage(article,newcontent,editsummary):
     while time.time()-lastEditTime < EPS:
         time.sleep(.2)
     lastEditTime = time.time()
-    return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",{"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"})
-def ExcludeTag(text,tag): #Returns a filtered version. Most useful for nowiki.
+    try:
+        return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",{"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"})
+    except Exception as exc:
+        log(f"[ChangeWikiPage] Warning: Failed to submit an edit form request for {article} -> Reason: {exc}")
+def ExcludeTag(text,tag): #Returns a filtered version. Most useful for nowiki. Unused
     upperlower = "".join([f"[{x.upper()}{x.lower()}]" for x in tag])
     finalreg = f"<{upperlower}(>|[^>]*[^/]>)[\s\S]*?</{upperlower} *>"
     print(finalreg)
@@ -192,7 +195,11 @@ class Article: #Creates a class representation of an article to contain function
     def GetRawContent(self):
         if self.RawContent != None:
             return self.RawContent
-        content = request("get",f"{enwiki}wiki/{self.Article}?action=edit").text
+        try:
+            content = request("get",f"{enwiki}wiki/{self.Article}?action=edit").text
+        except Exception as exc:
+            log(f"[Article] Warning: Failed a GRC request while trying to get {self.Article} -> Reason: {exc}")
+            content = "" #Default to an empty string so that rawtext fails and this gets marked as "not existing"
         rawtext = rawtextreg.search(content)
         if not rawtext:
             #Not an article, therefore flag as such and give up now.
@@ -212,7 +219,11 @@ class Article: #Creates a class representation of an article to contain function
             return self.Content
         if not self.exists():
             return
-        content = wholepagereg.search(request("get",enwiki+"wiki/"+self.Article).text).group(1)
+        try:
+            content = wholepagereg.search(request("get",enwiki+"wiki/"+self.Article).text).group(1)
+        except Exception as exc:
+            log(f"[Article] Warning: Failed a GC request while trying to get {self.Article} -> Reason: {exc}")
+            return "" #This should never happen thanks to the .exists() call above, but anything could happen in 2 seconds
         self.Content = content
         return content
     def edit(self,newContent,editSummary,bypassExclusion=False):
