@@ -76,8 +76,6 @@ def CreateFormRequest(location,d):
         finaltext += f"""{boundary}\nContent-Disposition: form-data; name="{arg}"\n\n{data}\n"""
     finaltext += f"{boundary}--"
     return request("post",location,data=finaltext.encode("utf-8"),headers={"Content-Type":f"multipart/form-data; boundary={boundary[2:]}"})
-def GetWholeWikiText(article):
-    return request("get",enwiki+"wiki/"+article).text #More for debugging, shouldnt really be used
 def SubstituteIntoString(wholestr,substitute,start,end):
     return wholestr[:start]+substitute+wholestr[end:]
 
