@@ -197,9 +197,13 @@ rawtextreg = regex.compile('<textarea [^>]+>([^<]+)</textarea>')
 wholepagereg = regex.compile('<div id="mw-content-text" class="mw-body-content mw-content-ltr" [^>]+?>([\s\S]+)<div id="catlinks" class="[^"]+" data-mw="interface">') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+?)" (class="[^"]*" )?title="[^"]+?">')
 templatesreg = regex.compile('({{([^{}]+({{[^}]+}})?)+}})')
+stripurlparams = regex.compile('([^?#&]+)([?#&].+)?')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
         self.Article = articleName
+        self.StrippedArticle = stripurlparams.search(self.Article).group(1)
+        if self.Article != self.StrippedArticle:
+            verbose("Article",f"Just stripped '{stripurlparams.search(self.Article).group(2)}' from {self.Article}")
         self.Namespace = GetNamespace(articleName)
         self._raw = None #Dont change this
         self.Content = None #Avoid getting directly outside of class functions
@@ -209,9 +213,10 @@ class Article: #Creates a class representation of an article to contain function
         if self.RawContent != None:
             return self.RawContent
         try:
-            content = request("get",f"{enwiki}wiki/{self.Article}?action=edit").text
+            content = request("get",f"{enwiki}wiki/{self.StrippedArticle}?action=edit").text
+            #URL should be stripped of params - they should only matter in GetContent. If we dont strip, we get caught by the global blacklist
         except Exception as exc:
-            log(f"[Article] Warning: Failed a GRC request while trying to get {self.Article} -> Reason: {exc}")
+            log(f"[Article] Warning: Failed a GRC request while trying to get {self.StrippedArticle} -> Reason: {exc}")
             content = "" #Default to an empty string so that rawtext fails and this gets marked as "not existing"
         rawtext = rawtextreg.search(content)
         if not rawtext:
@@ -257,7 +262,7 @@ class Article: #Creates a class representation of an article to contain function
             return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
         if INDEV and not self.Namespace in ["User","User talk"]:
             return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article}, {self.Namespace})")
-        ChangeWikiPage(self.Article,newContent,editSummary)
+        ChangeWikiPage(self.StrippedArticle,newContent,editSummary)
     def GetWikiLinks(self,afterPoint=None):
         if not self.exists():
             return []
