@@ -203,7 +203,7 @@ class Article: #Creates a class representation of an article to contain function
         self.Article = articleName
         self.StrippedArticle = stripurlparams.search(self.Article).group(1)
         if self.Article != self.StrippedArticle:
-            verbose("Article",f"Just stripped '{stripurlparams.search(self.Article).group(2)}' from {self.Article}")
+            verbose("Article",f"Just stripped '{stripurlparams.search(self.Article).group(2)}' from {self.StrippedArticle}")
         self.Namespace = GetNamespace(articleName)
         self._raw = None #Dont change this
         self.Content = None #Avoid getting directly outside of class functions
