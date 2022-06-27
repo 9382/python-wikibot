@@ -113,10 +113,9 @@ def ChangeWikiPage(article,newcontent,editsummary):
     global lastEditTime
     global editCount
     if editCount >= maxEdits and maxEdits > 0:
-        log(f"Warning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
+        log(f"Warning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. The edit to {article} has been prevented. Pausing script indefinitely...")
         while True:
             time.sleep(60)
-            log("Bot hit edit count limit. We aren't going anywhere now")
     editCount += 1
     if editCount % 5 == 0:
         print("Edit count:",editCount) #Purely statistical for the console
@@ -133,6 +132,11 @@ def ChangeWikiPage(article,newcontent,editsummary):
         return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",{"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"})
     except Exception as exc:
         log(f"[ChangeWikiPage] Warning: Failed to submit an edit form request for {article} -> Reason: {exc}")
+        editcount -= 1 #Invalid, nullify the edit
+    if editCount >= maxEdits and maxEdits > 0:
+        log(f"Warning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
+        while True:
+            time.sleep(60)
 def ExcludeTag(text,tag): #Returns a filtered version. Most useful for nowiki. Unused
     upperlower = "".join([f"[{x.upper()}{x.lower()}]" for x in tag])
     finalreg = f"<{upperlower}(>|[^>]*[^/]>)[\s\S]*?</{upperlower} *>"
