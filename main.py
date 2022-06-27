@@ -113,7 +113,7 @@ def ChangeWikiPage(article,newcontent,editsummary):
     global lastEditTime
     global editCount
     if editCount >= maxEdits and maxEdits > 0:
-        log(f"Warning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. The edit to {article} has been prevented. Pausing script indefinitely...")
+        log(f"\n\n\nWarning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. The edit to {article} has been prevented. Pausing script indefinitely...")
         while True:
             time.sleep(60)
     editCount += 1
@@ -134,7 +134,7 @@ def ChangeWikiPage(article,newcontent,editsummary):
         log(f"[ChangeWikiPage] Warning: Failed to submit an edit form request for {article} -> Reason: {exc}")
         editcount -= 1 #Invalid, nullify the edit
     if editCount >= maxEdits and maxEdits > 0:
-        log(f"Warning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
+        log(f"\n\n\nWarning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
         while True:
             time.sleep(60)
 def ExcludeTag(text,tag): #Returns a filtered version. Most useful for nowiki. Unused
