@@ -107,7 +107,7 @@ def GetNamespace(articlename):
     return "Article"
 lastEditTime = 0
 editCount = 0
-def ChangeWikiPage(article,newcontent,editsummary):
+def ChangeWikiPage(article,newcontent,editsummary,minorEdit):
     #Submits edits to pages automatically (since the form is a bit of a nightmare)
     #Not in the class as we need to centralise lastEditTime
     global lastEditTime
@@ -128,8 +128,11 @@ def ChangeWikiPage(article,newcontent,editsummary):
     while time.time()-lastEditTime < EPS:
         time.sleep(.2)
     lastEditTime = time.time()
+    formData = {"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"}
+    if minorEdit:
+        formData["wpMinoredit"] = ""
     try:
-        return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",{"wpUnicodeCheck":"ℳ𝒲♥𝓊𝓃𝒾𝒸ℴ𝒹ℯ","wpTextbox1":newcontent,"wpSummary":editsummary,"wpEditToken":GetTokenForType("csrf"),"wpUltimateParam":"1"})
+        return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",formData)
     except Exception as exc:
         log(f"[ChangeWikiPage] Warning: Failed to submit an edit form request for {article} -> Reason: {exc}")
         editcount -= 1 #Invalid, nullify the edit
@@ -249,7 +252,7 @@ class Article: #Creates a class representation of an article to contain function
             return "" #This should never happen thanks to the .exists() call above, but anything could happen in 2 seconds
         self.Content = content
         return content
-    def edit(self,newContent,editSummary,bypassExclusion=False):
+    def edit(self,newContent,editSummary,*,minorEdit=False,bypassExclusion=False):
         if activelyStopped:
             log(f"Warning: Can't push edits while in panic mode (Once sorted, change User:{username}/panic to re-enable). Thread will now hang until able to resume...")
             while activelyStopped:
@@ -266,7 +269,7 @@ class Article: #Creates a class representation of an article to contain function
             return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
         if INDEV and not self.Namespace in ["User","User talk"]:
             return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article}, {self.Namespace})")
-        ChangeWikiPage(self.StrippedArticle,newContent,editSummary)
+        ChangeWikiPage(self.StrippedArticle,newContent,editSummary,minorEdit)
     def GetWikiLinks(self,afterPoint=None):
         if not self.exists():
             return []
