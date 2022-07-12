@@ -398,7 +398,7 @@ while True:
         break
     panic = Article(f"User:{username}/panic")
     if panic.exists():
-        if panic.GetRawContent().strip() == "true":
+        if panic.GetRawContent().strip().lower() == "true":
             activelyStopped = True
         else:
             activelyStopped = False
