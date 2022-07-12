@@ -216,8 +216,8 @@ class Article: #Creates a class representation of an article to contain function
         self.Content = None #Avoid getting directly outside of class functions
         self.RawContent = None #Same as above
         self.Templates = None #Same as above
-    def GetRawContent(self):
-        if self.RawContent != None:
+    def GetRawContent(self,forceNew=False):
+        if self.RawContent != None and not forceNew:
             return self.RawContent
         try:
             content = request("get",f"{enwiki}wiki/{self.StrippedArticle}?action=edit").text
@@ -269,6 +269,12 @@ class Article: #Creates a class representation of an article to contain function
             return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
         if INDEV and not self.Namespace in ["User","User talk"]:
             return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article}, {self.Namespace})")
+        if self.RawContent:
+            currentContent = self.RawContent
+            newContent = self.GetRawContent(True)
+            if currentContent != newContent:
+                #Edit conflict -> Content has changed since
+                return log(f"Warning: Refused to edit page that has been edited since last check ({self.Article})")
         ChangeWikiPage(self.StrippedArticle,newContent,editSummary,minorEdit)
     def GetWikiLinks(self,afterPoint=None):
         if not self.exists():
