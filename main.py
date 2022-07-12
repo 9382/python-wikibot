@@ -270,9 +270,9 @@ class Article: #Creates a class representation of an article to contain function
         if INDEV and not self.Namespace in ["User","User talk"]:
             return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article}, {self.Namespace})")
         if self.RawContent:
-            currentContent = self.RawContent
-            newContent = self.GetRawContent(True)
-            if currentContent != newContent:
+            oldContent = self.RawContent
+            currentContent = self.GetRawContent(True)
+            if oldContent != currentContent:
                 #Edit conflict -> Content has changed since
                 return log(f"Warning: Refused to edit page that has been edited since last check ({self.Article})")
         ChangeWikiPage(self.StrippedArticle,newContent,editSummary,minorEdit)
