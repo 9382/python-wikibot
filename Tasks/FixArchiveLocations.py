@@ -43,7 +43,7 @@ def CheckArchiveLocations(page):
     return True
 
 # CheckArchiveLocations("User_talk:Aidan9382-Bot/sandbox")
-looptime = 600 #10 minutes
+looptime = 3600 #1 hour
 curtime = time.time()-looptime
 while True:
     if curtime + looptime < time.time():
