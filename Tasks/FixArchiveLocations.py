@@ -20,7 +20,7 @@ def CheckArchiveLocations(page):
                 if not archiveLocation.startswith(currentLocation+"/"): #Not a subpage
                     verbose("Archive Fix",f"{page} currently has {archiveLocation}, but we should have something with {currentLocation}")
                     #Most common case: Result of a page move, no GIGO problems
-                    existingArchive = regex.compile("(/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee]([Ss]/| |%).+)").search(archiveLocation)
+                    existingArchive = regex.compile("(/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee].+)").search(archiveLocation)
                     if existingArchive:
                         wantedLocation = existingArchive.group()
                         verbose("Archive Fix",f"Attempting to preserve {wantedLocation}")
