@@ -154,6 +154,7 @@ class Template: #Parses a template and returns a class object representing it
         self.Text = templateText
         templateArgs = templateText[2:-2].split("|")
         self.Template = templateArgs[0].strip()
+        # print(f"Processing temmplate {self.Template}...")
         if len(self.Text) > 1000:
             verbose("Template",f"{self.Template} has a total length of {len(self.Text)}, which is larger than what is normally expected")
         args = {}
@@ -203,7 +204,7 @@ activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>([^<]+)</textarea>')
 wholepagereg = regex.compile('<div id="mw-content-text" class="mw-body-content mw-content-ltr" [^>]+?>([\s\S]+)<div id="catlinks" class="[^"]+" data-mw="interface">') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+?)" (class="[^"]*" )?title="[^"]+?">')
-templatesreg = regex.compile('({{([^{}]+({{[^}]+}})?)+}})')
+templatesreg = regex.compile('({{([^{}]*({{[^}]+}})?)+}})')
 stripurlparams = regex.compile('([^?#&]+)([?#&].+)?')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
