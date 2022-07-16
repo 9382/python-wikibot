@@ -308,6 +308,8 @@ class Article: #Creates a class representation of an article to contain function
         self.Templates = [Template(x[0]) for x in templatesreg.findall(self.RawContent)]
         verbose("Article",f"Registered {len(self.Templates)} templates for {self.Article}")
         return self.Templates
+    def GetSubpages(self):
+        return Article(f"Special:PrefixIndex/{self.StrippedArticle}/").GetWikiLinks("mw-htmlform-ooui-wrapper")
     def HasExclusion(self):
         #If the bot is excluded from editing a page, this returns True
         for template in self.GetTemplates():
