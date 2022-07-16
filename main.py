@@ -202,7 +202,7 @@ class Template: #Parses a template and returns a class object representing it
 
 activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>([^<]+)</textarea>')
-wholepagereg = regex.compile('<div id="mw-content-text" class="mw-body-content mw-content-ltr" [^>]+?>([\s\S]+)<div id="catlinks" class="[^"]+" data-mw="interface">') #Potentially a bad move? NOTE: See if convenient API exists
+wholepagereg = regex.compile('<div id="mw-content-text" class="mw-body-content[ \w-]*"[^>]*?>([\s\S]+)<div id="catlinks" class="[^"]+" data-mw="interface">') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+?)" (class="[^"]*" )?title="[^"]+?">')
 templatesreg = regex.compile('({{([^{}]*({{[^}]+}})?)+}})')
 stripurlparams = regex.compile('([^?#&]+)([?#&].+)?')
@@ -220,23 +220,30 @@ class Article: #Creates a class representation of an article to contain function
     def GetRawContent(self,forceNew=False):
         if self.RawContent != None and not forceNew:
             return self.RawContent
-        try:
-            content = request("get",f"{enwiki}wiki/{self.StrippedArticle}?action=edit").text
-            #URL should be stripped of params - they should only matter in GetContent. If we dont strip, we get caught by the global blacklist
-        except Exception as exc:
-            log(f"[Article] Warning: Failed a GRC request while trying to get {self.StrippedArticle} -> Reason: {exc}")
-            content = "" #Default to an empty string so that rawtext fails and this gets marked as "not existing"
-        rawtext = rawtextreg.search(content)
-        if not rawtext:
-            #Not an article, therefore flag as such and give up now.
-            self.RawContent = False
-            self._raw = False
-            verbose("Article",f"{self.Article} failed the rawtextreg search")
-            return False
-        correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",rawtext.group(1))) #&lt; and &amp; autocorrection
-        self.RawContent = correctedtext
-        self._raw = correctedtext
-        return correctedtext
+        if GetNamespace(self.Article) == "Special":
+            #Special pages wont get past the rawtext check but do exist in reality and we need them
+            #Setting them to empty strings mean they pass the .exists() check
+            self._RawContent = ""
+            self._raw = ""
+            return ""
+        else:
+            try:
+                content = request("get",f"{enwiki}wiki/{self.StrippedArticle}?action=edit").text
+                #URL should be stripped of params - they should only matter in GetContent. If we dont strip, we get caught by the global blacklist
+            except Exception as exc:
+                log(f"[Article] Warning: Failed a GRC request while trying to get {self.StrippedArticle} -> Reason: {exc}")
+                content = "" #Default to an empty string so that rawtext fails and this gets marked as "not existing"
+            rawtext = rawtextreg.search(content)
+            if not rawtext:
+                #Not an article, therefore flag as such and give up now.
+                self.RawContent = False
+                self._raw = False
+                verbose("Article",f"{self.Article} failed the rawtextreg search")
+                return False
+            correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",rawtext.group(1))) #&lt; and &amp; autocorrection
+            self.RawContent = correctedtext
+            self._raw = correctedtext
+            return correctedtext
     def exists(self):
         if self.RawContent == None:
             self.GetRawContent()
