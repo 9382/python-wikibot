@@ -5,7 +5,7 @@ def CheckArchiveLocations(page):
     article = Article(page)
     if not article.exists():
         #No idea how this would happen since its from a category, but oh well
-        log("[FixArchiveLocation] Warning: "+page+" doesn't exist despite being from a category search")
+        log(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
         return
     content = article.GetRawContent()
     content = regex.sub("\n?\[\[Category:Pages where archive parameter is not a subpage\|?[^\]]*\]\]","",content) #Shouldn't be explicitly added
@@ -25,9 +25,20 @@ def CheckArchiveLocations(page):
                         wantedLocation = existingArchive.group()
                         verbose("Archive Fix",f"Attempting to preserve {wantedLocation}")
                         if wantedLocation[0] == "/": #Stupid but eh
-                            template.ChangeKeyData("archive",currentLocation+wantedLocation)
+                            newArchive = currentLocation+wantedLocation
                         else:
-                            template.ChangeKeyData("archive",currentLocation+"/"+wantedLocation)
+                            newArchive = currentLocation+"/"+wantedLocation
+                        #Verify this archive is valid by either checking if it exists or if the page has no current subpages
+                        #Currently only supports %(counter)d substitution, as year and month would require much more advanced checks
+                        if not Article(newArchive.replace(r"%(counter)d","1")).exists():
+                            #Archive doesnt exist. Now checking for any existing subpages
+                            verbose("Archive Fix",f"{currentLocation} failed 1 of 2 safety checks (Missing expected archives)")
+                            if len(article.GetSubpages()) > 0:
+                                #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked properly
+                                log(f"[Archive Fix] {currentLocation} failed 2 of 2 safety checks (Already existing subpages). This is a potential case of GIGO and should be addressed by a human")
+                                continue
+                        verbose("Archive Fix","Safety tests have passed")
+                        template.ChangeKeyData("archive",newArchive)
                         content = content.replace(template.Original,template.Text)
                         continue
                     #else: cry(). its GIGO time
@@ -42,7 +53,7 @@ def CheckArchiveLocations(page):
         article.edit(content,f"Fix archive location for Lowercase Sigmabot III ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])",minorEdit=True)
     return True
 
-# CheckArchiveLocations("User_talk:Aidan9382-Bot/sandbox")
+# CheckArchiveLocations(f"User_talk:{username}/sandbox")
 looptime = 3600 #1 hour
 curtime = time.time()-looptime
 while True:
