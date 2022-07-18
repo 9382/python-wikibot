@@ -266,12 +266,12 @@ class Article: #Creates a class representation of an article to contain function
             while activelyStopped:
                 time.sleep(10)
             log("We are no loner panicking. Exiting pause...")
-        if newContent == self._raw:
-            #If you really need to null edit, add a \n. MW will ignore it, but this wont
-            return log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
         if not self.exists():
             #Will still continue to submit the edit, even if this is the case
             log(f"Warning: Editing article that doesnt exist ({self.Article}). Continuing anyways...")
+        if newContent == self._raw:
+            #If you really need to null edit, add a \n. MW will ignore it, but this wont
+            return log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
         if self.HasExclusion() and not bypassExclusion:
             #Its been requested we stay away, so we will
             return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
