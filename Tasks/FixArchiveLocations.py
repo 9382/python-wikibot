@@ -49,6 +49,7 @@ def CheckArchiveLocations(page):
                     #While we could code something to check previous revisions or look for naming patterns, we could also leave it to humans
                     #And thats what we shall do
                     log(f"Somehow reached the GIGO step in FixArchiveLocations for {page}. This should be fixed by a human and considered for fix by this script")
+                    unsafeCases.append(currentLocation)
                 elif content == article.RawContent: #The earlier regex.sub caught nothing and theres no archive fail - this shouldnt happen
                     log(f"[FixArchiveLocation] {page} does not seem to be malformed. Unsure how they ended up here. Trying a null edit...")
                     content = content + "\n"
