@@ -34,14 +34,18 @@ def CheckArchiveLocations(page):
                         #Currently only supports %(counter)d substitution, as year and month would require much more advanced checks
                         if not Article(newArchive.replace(r"%(counter)d","1")).exists():
                             if "counter" in template.Args:
-                                if not Article(newArchive.replace(r"%(counter)d",template.Args["counter"])).exists():
-                                    #Archive doesnt exist. Now checking for any existing subpages
-                                    verbose("Archive Fix",f"{currentLocation} failed 1 of 2 safety checks (Missing expected archives)")
-                                    if len(article.GetSubpages()) > 0:
-                                        #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked properly
-                                        log(f"[Archive Fix] {currentLocation} failed 2 of 2 safety checks (Already existing subpages). This is a potential case of GIGO and should be addressed by a human")
-                                        unsafeCases.append(currentLocation)
-                                        continue
+                                if Article(newArchive.replace(r"%(counter)d",template.Args["counter"])).exists():
+                                    verbose("Archive Fix","Safety tests have passed")
+                                    template.ChangeKeyData("archive",newArchive)
+                                    content = content.replace(template.Original,template.Text)
+                                    continue
+                            #Archive doesnt exist. Now checking for any existing subpages
+                            verbose("Archive Fix",f"{currentLocation} failed 1 of 2 safety checks (Missing expected archives)")
+                            if len(article.GetSubpages()) > 0:
+                                #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked properly
+                                log(f"[Archive Fix] {currentLocation} failed 2 of 2 safety checks (Already existing subpages). This is a potential case of GIGO and should be addressed by a human")
+                                unsafeCases.append(currentLocation)
+                                continue
                         verbose("Archive Fix","Safety tests have passed")
                         template.ChangeKeyData("archive",newArchive)
                         content = content.replace(template.Original,template.Text)
