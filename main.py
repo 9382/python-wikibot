@@ -204,7 +204,7 @@ activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>([^<]+)</textarea>')
 wholepagereg = regex.compile('<div id="mw-content-text" class="mw-body-content[ \w-]*"[^>]*?>([\s\S]+)<div id="catlinks" class="[^"]+" data-mw="interface">') #Potentially a bad move? NOTE: See if convenient API exists
 wikilinkreg = regex.compile('<a href="/wiki/([^"]+?)" (class="[^"]*" )?title="[^"]+?">')
-templatesreg = regex.compile('({{([^{}]*({{[^}]+}})?)+}})')
+bracketbalancereg = regex.compile('{{|}}') #For templates
 stripurlparams = regex.compile('([^?#&]+)([?#&].+)?')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
@@ -308,7 +308,29 @@ class Article: #Creates a class representation of an article to contain function
         if not self.exists():
             self.Templates = []
             return []
-        self.Templates = [Template(x[0]) for x in templatesreg.findall(self.RawContent)]
+        templates = []
+        textToScan = self.RawContent
+        while True:
+            nextTemplate = textToScan.find("{{")
+            if nextTemplate == -1:
+                break #Found all templates, exit
+            textToScan = textToScan[nextTemplate:]
+            balance = 1
+            furthestScan = 0
+            while True:
+                nextBracket = bracketbalancereg.search(textToScan[furthestScan+2:])
+                if nextBracket:
+                    bracketType = nextBracket.group()
+                    balance += (bracketType == "{{" and 1) or -1
+                    furthestScan += nextBracket.end()
+                    if balance == 0:
+                        templates.append(Template(textToScan[:furthestScan+2]))
+                        textToScan = textToScan[2:] #Move past brackets
+                        break
+                else:
+                    textToScan = textToScan[2:] #Skip past unbalanced bracket set
+                    break #Unfinished template, ignore it
+        self.Templates = templates
         verbose("Article",f"Registered {len(self.Templates)} templates for {self.Article}")
         return self.Templates
     def GetSubpages(self):
