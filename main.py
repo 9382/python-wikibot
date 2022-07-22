@@ -213,7 +213,7 @@ class Article: #Creates a class representation of an article to contain function
         if self.Article != self.StrippedArticle:
             verbose("Article",f"Just stripped '{stripurlparams.search(self.Article).group(2)}' from {self.StrippedArticle}")
         self.Namespace = GetNamespace(articleName)
-        self._raw = None #Dont change this
+        self.OriginalContent = None #Dont change this
         self.Content = None #Avoid getting directly outside of class functions
         self.RawContent = None #Same as above
         self.Templates = None #Same as above
@@ -223,8 +223,8 @@ class Article: #Creates a class representation of an article to contain function
         if GetNamespace(self.Article) == "Special":
             #Special pages wont get past the rawtext check but do exist in reality and we need them
             #Setting them to empty strings mean they pass the .exists() check
-            self._RawContent = ""
-            self._raw = ""
+            self.RawContent = ""
+            self.OriginalContent = ""
             return ""
         else:
             try:
@@ -237,12 +237,12 @@ class Article: #Creates a class representation of an article to contain function
             if not rawtext:
                 #Not an article, therefore flag as such and give up now.
                 self.RawContent = False
-                self._raw = False
+                self.OriginalContent = False
                 verbose("Article",f"{self.Article} failed the rawtextreg search")
                 return False
             correctedtext = regex.sub("&amp;","&",regex.sub("&lt;","<",rawtext.group(1))) #&lt; and &amp; autocorrection
             self.RawContent = correctedtext
-            self._raw = correctedtext
+            self.OriginalContent = correctedtext
             return correctedtext
     def exists(self):
         if self.RawContent == None:
@@ -269,16 +269,19 @@ class Article: #Creates a class representation of an article to contain function
         if not self.exists():
             #Will still continue to submit the edit, even if this is the case
             log(f"Warning: Editing article that doesnt exist ({self.Article}). Continuing anyways...")
-        if newContent == self._raw:
+        if newContent == self.OriginalContent:
             #If you really need to null edit, add a \n. MW will ignore it, but this wont
             return log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
         if self.HasExclusion() and not bypassExclusion:
             #Its been requested we stay away, so we will
             return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
-        if INDEV and not self.Namespace in ["User","User talk"]:
-            return log(f"Warning: Attempted to push edit to non-user space while in development mode ({self.Article}, {self.Namespace})")
-        if self.RawContent:
-            oldContent = self.RawContent
+        if INDEV:
+            if not (self.Namespace in ["User","User talk"] and self.Article.find(username) > -1):
+                #Not in bot's user space, and indev, so get out
+                return log(f"Warning: Attempted to push edit to a space other than our own while in development mode ({self.Article})")
+            editSummary += " [INDEV]"
+        if self.OriginalContent:
+            oldContent = self.OriginalContent
             currentContent = self.GetRawContent(True)
             if oldContent != currentContent:
                 #Edit conflict -> Content has changed since
