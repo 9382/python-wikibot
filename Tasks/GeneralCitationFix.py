@@ -12,6 +12,7 @@ def GetCitations(article):
             templateEnding = templatePosition+len(template.Text)
             if not cbignore.search(article.GetRawContent()[templateEnding:templateEnding+99]):
                 citations.append(template)
+    verbose("Citation Fix",f"Found {len(citations)} citation templates from {len(article.GetTemplates())} templates")
     return citations
 
 formatcat = "Category:CS1_errors:_format_without_URL"
@@ -25,7 +26,8 @@ Edge cases to consider:
   [BL] digital (Hard to decide whether or not phrases like "Digitized by GoogleEBook" should be converted or not)
 """
 def LookForBadFormat(article):
-    anychanges = False
+    #Changes use of format to the more appropriate scenario if relevant
+    verbose("Citation Fix","Looking for bad |format=")
     raw = article.GetRawContent()
     for template in GetCitations(article):
         beforehand = template.Text
@@ -40,68 +42,58 @@ def LookForBadFormat(article):
                     if regex.compile(reg).search(curformat):
                         template.ChangeKey("format","type")
                         raw = raw.replace(beforehand,template.Text)
-                        anychanges = True
     article.RawContent = raw
-    return anychanges
 
 badcharcat = "Category:CS1_errors:_invisible_characters"
 def LookForBadCharacters(article):
-    anychanges = False
+    #Removes characters within citations that arent supported
+    verbose("Citation Fix","Looking for invalid characters")
     raw = article.GetRawContent()
     for template in GetCitations(article):
         beforehand = template.Text
         for key,item in list(template.Args.items()):
             for char in item:
                 charord = ord(char)
-                #This is stupid
+                #See https://en.wikipedia.org/wiki/Category:CS1_errors:_invisible_characters for how this is determined
                 if charord == 0x200B: #Zero Width Space
                     item = item.replace(char,"")
-                    anychanges = True
                 elif charord == 0x200D: #Zero Width Joiner
                     item = item.replace(char,"")
-                    anychanges = True
                 elif charord == 0x200A: #Hair Space
                     item = item.replace(char,"")
-                    anychanges = True
                 elif charord == 0xA0: #Non-Breaking Space (Replace instead of remove)
                     item = item.replace(char," ")
-                    anychanges = True
                 elif charord >= 0 and charord <= 0x1F: #C0 control
                     item = item.replace(char,"")
-                    anychanges = True
                 elif charord >= 0x80 and charord <= 0x9F: #C1 control
                     item = item.replace(char,"")
-                    anychanges = True
             if type(key) == str:
                 template.ChangeKeyData(key,item)
         raw = raw.replace(beforehand,template.Text)
     article.RawContent = raw
-    return anychanges
 
 pipescat = "Category:CS1_errors:_empty_unknown_parameters"
 def RemoveExcessivePipes(article):
-    anychanges = False
+    #Removes arguments in citations with no content at all
+    verbose("Citation Fix","Looking for completely empty parameters")
     raw = article.GetRawContent()
     for template in GetCitations(article):
         beforehand = template.Text
-        template.Text = regex.sub("\|[ \n]*}}","}}",regex.sub("\|[ \n]*\|","|",template.Text))
-        anychanges = anychanges or template.Text != beforehand
+        template.Text = regex.sub("\|[ \n]*(\||}})","\\1",template.Text)
         raw = raw.replace(beforehand,template.Text)
     article.RawContent = raw
-    return anychanges
 
 isbncat = "Category:CS1_errors:_ISBN"
 def CheckISBNs(article):
-    anychanges = False
+    #Fixes ISBNs by removing any text before the actual identifier
+    verbose("Citation Fix","Looking for bad ISBNs")
     raw = article.GetRawContent()
     for template in GetCitations(article):
         if "isbn" in template.Args:
             beforehand = template.Text
             isbn = template.ChangeKeyData("isbn",regex.sub(".* ([\d\-]{10,})","\\1",template.Args["isbn"]))
-            anychanges = anychanges or template.Text != beforehand
             raw = raw.replace(beforehand,template.Text)
     article.RawContent = raw
-    return anychanges
 
 def CheckPageForErrors(page):
     article = Article(page)
@@ -112,37 +104,26 @@ def CheckPageForErrors(page):
         print("Couldnt get raw of",page)
         return
     try:
-        anyformat = LookForBadFormat(article)
-        anybadchar = LookForBadCharacters(article)
-        anyexcesspipes = RemoveExcessivePipes(article)
-        anyisbn = CheckISBNs(article)
+        # LookForBadFormat(article) (Disabled due to ambiguity)
+        LookForBadCharacters(article)
+        RemoveExcessivePipes(article)
+        # CheckISBNs(article) (Disabled due to minimal use)
     except Exception as exc:
         log(f"Failed to process {page} due to the error of {exc}")
     else:
-        editsdone = []
-        #This is stupid
-        if anyformat:
-            editsdone.append("Changed |format= to |type= (CS1 Error: [[Category:CS1 errors: format without URL||format= without |url=]])")
-        if anybadchar:
-            editsdone.append("Removed invisible characters (CS1 Error: [[Category:CS1 errors: invisible characters|invisible characters]]")
-        if anyexcesspipes:
-            editsdone.append("Removed excessive pipes (CS1 Error: [[Category:CS1 errors: empty unknown parameters|empty unknown parameters]]")
-        if anyisbn:
-            editsdone.append("Fixed invalid ISBN characters (CS1 Error: [[Category:CS1 errors: ISBN|ISBN]]")
-        if len(editsdone) > 0:
-            article.edit(article.RawContent,f"Fixing citations -> {', '.join(editsdone)}")
-            return True
+        article.edit(article.RawContent,f"Fixed common citation errors ([[User:{username}/citations|More info]] - [[User talk:{username}|Report bot issues]])'")
+        return True
 
-h12 = 43200
-lastedittime = time.time()-h12
+looptime = 3600
+lastedittime = time.time()-looptime
 while True:
-    if time.time()-h12 > lastedittime:
-        log(f"Starting new cycle of GeneralCitationFix (12h {h12}, c-p {time.time()-lastedittime})")
+    if time.time()-looptime > lastedittime:
+        log(f"Starting new cycle of GeneralCitationFix (c-p {time.time()-lastedittime})")
         CheckPageForErrors(f"User:{username}/sandbox")
         # IterateCategory(formatcat,CheckPageForErrors)
         # IterateCategory(badcharcat,CheckPageForErrors)
         # IterateCategory(pipescat,CheckPageForErrors)
-        lastedittime = lastedittime + h12
-        log(f"Finished cycle of GeneralCitationFix (12h {h12}, c-p {time.time()-lastedittime})")
+        lastedittime = lastedittime + looptime
+        log(f"Finished cycle of GeneralCitationFix (c-p {time.time()-lastedittime})")
     else:
         time.sleep(1)
