@@ -2,7 +2,7 @@
 import urllib.parse
 
 unsafeCases = []
-archivetemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
+archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
 def CheckArchiveLocations(page):
     global unsafeCases
     article = Article(page)
