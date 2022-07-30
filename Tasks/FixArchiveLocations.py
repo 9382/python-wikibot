@@ -13,7 +13,7 @@ def CheckArchiveLocations(page):
     content = regex.sub("\n?\[\[Category:Pages where archive parameter is not a subpage\|?[^\]]*\]\]","",content) #Shouldn't be explicitly added
     currentLocation = urllib.parse.unquote(page.replace("_"," "))
     for template in article.GetTemplates():
-        if template.Template == "User:MiszaBot/config":
+        if template.Template == "User:MiszaBot/config" or template.Template == "User:Lowercase sigmabot III/config":
             if "archive" in template.Args and not "key" in template.Args:
                 archiveLocation = template.Args["archive"]
                 #Attempt to fix the archive location
