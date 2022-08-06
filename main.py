@@ -358,18 +358,18 @@ class Article: #Creates a class representation of an article to contain function
                     for bot in template.Args["allow"].split(","):
                         bot = bot.lower().strip()
                         if bot == username.lower() or bot == "all": #Allowed all or specific
-                            verbose("HasExclusion","bots presence found but permitted")
+                            verbose("HasExclusion","{{bots}} presence found but permitted")
                             return False
-                    verbose("HasExclusion","bots presence found, not permitted")
+                    verbose("HasExclusion","{{bots}} presence found, not permitted")
                     return True #Not in the "allowed" list, therefore we dont get to be here
                 if "deny" in template.Args:
                     for bot in template.Args["deny"].split(","):
                         bot = bot.lower().strip()
                         if bot == username.lower() or bot == "all": #Banned all or specific
-                            verbose("HasExclusion","bots presence found, denied")
+                            verbose("HasExclusion","{{bots}} presence found, denied")
                             return True
                         if bot == "none": #Allow all
-                            verbose("HasExclusion","bots presence found, not denied")
+                            verbose("HasExclusion","{{bots}} presence found, not denied")
                             return False
                 verbose("HasExclusion","Exclusion check has managed to not hit a return")
 
