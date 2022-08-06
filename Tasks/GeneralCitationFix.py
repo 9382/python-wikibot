@@ -107,23 +107,22 @@ def CheckPageForErrors(page):
         # LookForBadFormat(article) (Disabled due to ambiguity)
         LookForBadCharacters(article)
         RemoveExcessivePipes(article)
-        # CheckISBNs(article) (Disabled due to minimal use)
+        # CheckISBNs(article) (Disabled due to minimal usefullness)
     except Exception as exc:
         lalert(f"Failed to process {page} due to the error of {exc}")
     else:
         article.edit(article.RawContent,f"Fixed common citation errors ([[User:{username}/citations|More info]] - [[User talk:{username}|Report bot issues]])'")
         return True
 
-looptime = 3600
-lastedittime = time.time()-looptime
+looptime = 3600 #1 hour
+curtime = time.time()-looptime
 while True:
-    if time.time()-looptime > lastedittime:
-        log(f"Starting new cycle of GeneralCitationFix (c-p {time.time()-lastedittime})")
+    if curtime + looptime < time.time():
+        log("[GeneralCitationFix] Beginning cycle")
         CheckPageForErrors(f"User:{username}/sandbox")
-        # IterateCategory(formatcat,CheckPageForErrors)
         # IterateCategory(badcharcat,CheckPageForErrors)
         # IterateCategory(pipescat,CheckPageForErrors)
-        lastedittime = lastedittime + looptime
-        log(f"Finished cycle of GeneralCitationFix (c-p {time.time()-lastedittime})")
+        curtime = curtime + looptime
+        log(f"[GeneralCitationFix] Finished cycle in {time.time()-curtime} seconds. Next cycle will occur in {curtime+looptime-time.time()} seconds")
     else:
         time.sleep(1)
