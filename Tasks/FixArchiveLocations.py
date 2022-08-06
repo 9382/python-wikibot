@@ -34,7 +34,7 @@ def CheckArchiveLocations(page):
                         #Verify this archive is valid by either checking if it exists or if the page has no current subpages
                         #Currently only supports %(counter)d substitution, as year and month would require much more advanced checks
                         if not Article(newArchive.replace(r"%(counter)d","1")).exists():
-                            if "counter" in template.Args:
+                            if "counter" in template.Args and template.Args["counter"] != "1":
                                 if Article(newArchive.replace(r"%(counter)d",template.Args["counter"])).exists():
                                     verbose("Archive Fix","Safety tests have passed")
                                     template.ChangeKeyData("archive",newArchive)
