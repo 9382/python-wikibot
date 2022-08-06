@@ -167,7 +167,7 @@ class Template: #Parses a template and returns a class object representing it
         templateArgs = templateText[2:-2].split("|")
         self.Template = templateArgs[0].strip()
         # print(f"Processing temmplate {self.Template}...")
-        if len(self.Text) > 1000:
+        if len(self.Text) > 1500:
             verbose("Template",f"{self.Template} has a total length of {len(self.Text)}, which is larger than what is normally expected")
         args = {}
         for arg in templateArgs:
