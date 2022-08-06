@@ -6,6 +6,7 @@ from datetime import datetime
 import re as regex
 import threading
 import requests
+import colorama
 import random
 import time
 import os
@@ -21,6 +22,8 @@ isVerbose = envvalues["VERBOSE"].lower() == "true"
 def verbose(origin,content):
     if isVerbose:
         print(f"[Verbose {origin}] {content}")
+
+colorama.init()
 
 def currentDate():
     #The current date in YYYY-MM-DD hh:mm:ss
@@ -43,13 +46,22 @@ def safeWriteToFile(filename,content,mode="w",encoding="UTF-8"):
         return False,f"Failed to write content for {filename}"
     file.close()
     return True,f"Successfully wrote to {filename}"
-def log(content):
-    #Manages the writing to a daily log file for debugging
-    print(f"[Log {currentDate()[11:]}]",content)
+def log(content,*,colour=""):
+    #Manages the writing to a day-based log file for debugging
+    print(f"{colour}[Log {currentDate()[11:]}] {content}\033[0m")
     success,result = safeWriteToFile(f"Logs/{currentDate()[:10]}.log",f"[{currentDate()[11:]}] {content}\n","a")
     if not success:
-        print(f"[Log {currentDate()[11:]}] Failed to write to log file: {result}")
+        print(f"\033[41m\033[30m[Log {currentDate()[11:]}] Failed to write to log file: {result}\033[0m")
     return success
+def lerror(content): #Black text, red background
+    return log(content,colour="\033[41m\033[30m")
+def lalert(content): #Red text
+    return log(content,colour="\033[31m")
+def lwarn(content): #Yellow text
+    return log(content,colour="\033[33m")
+def lsucc(content): #Green text
+    return log(content,colour="\033[32m")
+
 if SUBMITEDITS:
     log("SUBMITEDITS is set to True. Edits will actually be made")
 else:
@@ -113,7 +125,7 @@ def ChangeWikiPage(article,newcontent,editsummary,minorEdit):
     global lastEditTime
     global editCount
     if editCount >= maxEdits and maxEdits > 0:
-        log(f"\n\n\nWarning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. The edit to {article} has been prevented. Pausing script indefinitely...")
+        lwarn(f"\n\nWarning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. The edit to {article} has been prevented. Pausing script indefinitely...")
         while True:
             time.sleep(60)
     editCount += 1
@@ -134,10 +146,10 @@ def ChangeWikiPage(article,newcontent,editsummary,minorEdit):
     try:
         return CreateFormRequest(enwiki+f"/w/index.php?title={article}&action=submit",formData)
     except Exception as exc:
-        log(f"[ChangeWikiPage] Warning: Failed to submit an edit form request for {article} -> Reason: {exc}")
+        lerror(f"[ChangeWikiPage] Warning: Failed to submit an edit form request for {article} -> Reason: {exc}")
         editcount -= 1 #Invalid, nullify the edit
     if editCount >= maxEdits and maxEdits > 0:
-        log(f"\n\n\nWarning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
+        lwarn(f"\n\nWarning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
         while True:
             time.sleep(60)
 def ExcludeTag(text,tag): #Returns a filtered version. Most useful for nowiki. Unused
@@ -256,29 +268,29 @@ class Article: #Creates a class representation of an article to contain function
         try:
             content = wholepagereg.search(request("get",enwiki+"wiki/"+self.Article).text).group(1)
         except Exception as exc:
-            log(f"[Article] Warning: Failed a GC request while trying to get {self.Article} -> Reason: {exc}")
+            lwarn(f"[Article] Warning: Failed a GC request while trying to get {self.Article} -> Reason: {exc}")
             return "" #This should never happen thanks to the .exists() call above, but anything could happen in 2 seconds
         self.Content = content
         return content
     def edit(self,newContent,editSummary,*,minorEdit=False,bypassExclusion=False):
         if activelyStopped:
-            log(f"Warning: Can't push edits while in panic mode (Once sorted, change User:{username}/panic to re-enable). Thread will now hang until able to resume...")
+            lalert(f"Warning: Can't push edits while in panic mode (Once sorted, change User:{username}/panic to re-enable). Thread will now hang until able to resume...")
             while activelyStopped:
                 time.sleep(10)
-            log("We are no loner panicking. Exiting pause...")
+            lsucc("We are no loner panicking. Exiting pause...")
         if not self.exists():
             #Will still continue to submit the edit, even if this is the case
             log(f"Warning: Editing article that doesnt exist ({self.Article}). Continuing anyways...")
         if newContent == self.OriginalContent:
             #If you really need to null edit, add a \n. MW will ignore it, but this wont
-            return log(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
+            return lwarn(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
         if self.HasExclusion() and not bypassExclusion:
             #Its been requested we stay away, so we will
             return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
         if INDEV:
             if not (self.Namespace in ["User","User talk"] and self.Article.find(username) > -1):
                 #Not in bot's user space, and indev, so get out
-                return log(f"Warning: Attempted to push edit to a space other than our own while in development mode ({self.Article})")
+                return lwarn(f"Warning: Attempted to push edit to a space other than our own while in development mode ({self.Article})")
             editSummary += " [INDEV]"
         if self.OriginalContent:
             oldContent = self.OriginalContent
@@ -367,7 +379,7 @@ def IterateCategory(category,torun):
     lastpage = ""
     catpage = Article(category)
     if not catpage.exists():
-        log(f"Attempting to iterate {category} despite it not existing")
+        lwarn(f"Attempting to iterate {category} despite it not existing")
     links = catpage.GetWikiLinks('ion">learn more</a>).')
     for page in links:
         if torun(page):
@@ -397,9 +409,9 @@ def IterateCategory(category,torun):
 log(f"Attempting to log-in as {username}")
 CreateFormRequest(enwiki+f"w/api.php?action=login&format=json",{"lgname":username,"lgpassword":password,"lgtoken":GetTokenForType("login")}) #Set-Cookie handles this
 if not "centralauth_User" in cookies:
-    log(f"[!] Failed to log-in as {username}, check the password and username are correct")
+    lalert(f"[!] Failed to log-in as {username}, check the password and username are correct")
     exit()
-log("Successfully logged in")
+lsucc("Successfully logged in")
 
 #Task loader
 log("Attempting to load tasks...")
@@ -422,14 +434,14 @@ for file,contents in execList.items():
         taskThread = threading.Thread(target=exec,args=(contents,globals()))
         taskThread.start()
     except Exception as exc:
-        log(f"[Tasks] Task {file} loading error -> {exc}")
-log("Finished loading tasks")
+        lerror(f"[Tasks] Task {file} loading error -> {exc}")
+lsucc("Finished loading tasks")
 while True:
     time.sleep(60)
     tasks = threading.active_count()
     # log(f"Active task count: {tasks-1}")
     if tasks == 1:
-        log("All tasks seem to have been terminated or finished")
+        lalert("All tasks seem to have been terminated or finished")
         break
     panic = Article(f"User:{username}/panic")
     if panic.exists():

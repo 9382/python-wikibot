@@ -109,7 +109,7 @@ def CheckPageForErrors(page):
         RemoveExcessivePipes(article)
         # CheckISBNs(article) (Disabled due to minimal use)
     except Exception as exc:
-        log(f"Failed to process {page} due to the error of {exc}")
+        lalert(f"Failed to process {page} due to the error of {exc}")
     else:
         article.edit(article.RawContent,f"Fixed common citation errors ([[User:{username}/citations|More info]] - [[User talk:{username}|Report bot issues]])'")
         return True

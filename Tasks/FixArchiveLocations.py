@@ -44,7 +44,7 @@ def CheckArchiveLocations(page):
                             verbose("Archive Fix",f"{currentLocation} failed 1 of 2 safety checks (Missing expected archives)")
                             if len(article.GetSubpages()) > 0:
                                 #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked properly
-                                log(f"[Archive Fix] {currentLocation} failed 2 of 2 safety checks (Already existing subpages). This is a potential case of GIGO and should be addressed by a human")
+                                lalert(f"[Archive Fix] {currentLocation} failed 2 of 2 safety checks (Already existing subpages). This is a potential case of GIGO and should be addressed by a human")
                                 unsafeCases.append(currentLocation)
                                 continue
                         verbose("Archive Fix","Safety tests have passed")
@@ -55,7 +55,7 @@ def CheckArchiveLocations(page):
                     #If the above check fails, vandalism is a likely scenario
                     #While we could code something to check previous revisions or look for naming patterns, we could also leave it to humans
                     #And thats what we shall do
-                    log(f"Somehow reached the GIGO step in FixArchiveLocations for {page}. This should be fixed by a human and considered for fix by this script")
+                    lalert(f"Couldn't find existing archive for {page}. I'm not gonna try fix this myself")
                     unsafeCases.append(currentLocation)
                 elif content == article.RawContent: #The earlier regex.sub caught nothing and theres no archive fail - this shouldnt happen
                     log(f"[FixArchiveLocation] {page} does not seem to be malformed. Unsure how they ended up here. Trying a null edit...")
