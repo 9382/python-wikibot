@@ -40,13 +40,10 @@ def CheckArchiveLocations(page):
                                     template.ChangeKeyData("archive",newArchive)
                                     content = content.replace(template.Original,template.Text)
                                     continue
-                            #Archive doesnt exist. Now checking for any existing subpages
-                            verbose("Archive Fix",f"{currentLocation} failed 1 of 2 safety checks (Missing expected archives)")
-                            if len(article.GetSubpages()) > 0:
-                                #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked properly
-                                lalert(f"[Archive Fix] {currentLocation} failed 2 of 2 safety checks (Already existing subpages). This is a potential case of GIGO and should be addressed by a human")
-                                unsafeCases.append(currentLocation)
-                                continue
+                            #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked manually
+                            lalert(f"[Archive Fix] {currentLocation} failed safety checks (Missing expected archives). This is something that needs human attention")
+                            unsafeCases.append(currentLocation)
+                            continue
                         verbose("Archive Fix","Safety tests have passed")
                         template.ChangeKeyData("archive",newArchive)
                         content = content.replace(template.Original,template.Text)
@@ -74,10 +71,10 @@ while True:
         IterateCategory("Category:Pages where archive parameter is not a subpage",CheckArchiveLocations)
         log(f"[FixArchiveLocation] Finished cycle in {time.time()-curtime} seconds. Next cycle will occur in {curtime+looptime-time.time()} seconds")
         if len(unsafeCases) == 0:
-            Article(f"User:{username}/helpme/Task2").edit("No problematic archives\n","[Task 2] No problematic archives")
+            Article(f"User:{username}/helpme/Task2").edit("No problems\n","[Task 2] No problematic archives")
         else:
             problematicList = "\n".join([f"* [[:{page}]]" for page in unsafeCases])
-            Article(f"User:{username}/helpme/Task2").edit(f"Found problematic archives (This is likely the result of vandalism or odd/broken formatting)\n{problematicList}\n",f"[Task 2] Requesting help on {len(unsafeCases)} archive(s)")
+            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:\n{problematicList}\n",f"[Task 2] Requesting help on {len(unsafeCases)} archive(s)")
         unsafeCases.clear()
     else:
         time.sleep(1)
