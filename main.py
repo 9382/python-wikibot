@@ -379,7 +379,7 @@ def IterateCategory(category,torun):
     lastpage = ""
     catpage = Article(category)
     if not catpage.exists():
-        lwarn(f"Attempting to iterate {category} despite it not existing")
+        lwarn(f"Attempting to iterate '{category}' despite it not existing")
     links = catpage.GetWikiLinks('<div class="mw-category"><div class="mw-category-group">')
     for page in links:
         if torun(page):
@@ -392,7 +392,7 @@ def IterateCategory(category,torun):
         catpage = Article(category+"?from="+lastpage)
         links = catpage.GetWikiLinks('<div class="mw-category"><div class="mw-category-group">')
         for page in links:
-            if torun(page):
+            if page != lastpage and torun(page):
                 newlastpage = page
         if newlastpage:
             if ord(newlastpage[0]) < ord(lastpage[0]) or newlastpage == lastpage:
