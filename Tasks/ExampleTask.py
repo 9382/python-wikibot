@@ -1,10 +1,7 @@
-#Just appends text to the bot's sandbox page as a demonstration
+#Demonstration and testing stuff
 
-while True:
-	page = Article(f"User:{username}/sandbox")
-	rc = page.GetRawContent()
-	print("Got rc")
-	time.sleep(10)
-	page.edit(rc+"\nContent","Testing edit conflicts",minorEdit=True)
-	print("Test edit done")
-	time.sleep(20)
+time.sleep(1)
+page = Article(f"User:{username}/dummypage")
+print("Got page")
+page.MoveTo(f"User:{username}/dummypage2","Testing movement")
+print("Moved")

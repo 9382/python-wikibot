@@ -118,6 +118,18 @@ def GetNamespace(articlename):
     if articlename.startswith("Special:"):
         return "Special"
     return "Article"
+namespaceIDs = {"Article":0,"Talk":1,"User":2,"User talk":3,"Wikipedia":4,"Wikipedia talk":5,"File":6,"File talk":7,
+                "MediaWiki":8,"MediaWiki talk":9,"Template":10,"Template talk":11,"Help":12,"Help talk":13,
+                "Category":14,"Category talk":15,"Portal":100,"Portal talk":101,"Draft":118,"Draft talk":119,
+                "TimedText":710,"TimedText talk":711,"Module":828,"Module talk":829,"Special":-1,"Media":-2}
+def GetNamespaceID(articlename):
+    return namespaceIDs[GetNamespace(articlename)]
+def StripNamespace(articlename):
+    namespace = GetNamespace(articlename)
+    if namespace == "Article":
+        return articlename
+    else:
+        return articlename[len(namespace)+1:]
 lastEditTime = 0
 editCount = 0
 def ChangeWikiPage(article,newcontent,editsummary,minorEdit):
@@ -373,6 +385,22 @@ class Article: #Creates a class representation of an article to contain function
                             verbose("HasExclusion","{{bots}} presence found, not denied")
                             return False
                 verbose("HasExclusion","Exclusion check has managed to not hit a return")
+    def MoveTo(self,newPage,reason,leaveRedirect=True):
+        #Move the page from its current location to a new one
+        namespaceID = GetNamespaceID(newPage)
+        newPage = StripNamespace(newPage) #Remove any provided namespace
+        leaveRedirect = (leaveRedirect and 1) or 0
+        if INDEV:
+            if not (self.Namespace in ["User","User talk"] and self.Article.find(username) > -1):
+                #Not in bot's user space, and indev, so get out
+                return lwarn(f"Warning: Attempted to move a page in a space other than our own while in development mode ({self.Article})")
+            reason += " [INDEV]"
+        if not SUBMITEDITS:
+            return print(f"Not moving {self.StrippedArticle} to {newPage} as SUBMITEDITS is set to False")
+        result = CreateFormRequest(enwiki+f"w/index.php?title=Special:MovePage&action=submit",
+            {"wpNewTitleNs":namespaceID,"wpNewTitleMain":newPage,"wpReason":reason,"wpOldTitle":self.StrippedArticle,"wpEditToken":GetTokenForType("csrf"),"wpLeaveRedirect":leaveRedirect}
+        )
+        return result
 
 def IterateCategory(category,torun):
     #Iterates all wikilinks of a category, even if multi-paged
