@@ -3,6 +3,7 @@
 
 from dotenv import dotenv_values
 from datetime import datetime
+import urllib.parse
 import re as regex
 import threading
 import requests

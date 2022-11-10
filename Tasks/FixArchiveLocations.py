@@ -1,5 +1,4 @@
 #This task fixes the archive parameter for the {{User:MiszaBot/config}} template
-import urllib.parse
 
 unsafeCases = []
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
