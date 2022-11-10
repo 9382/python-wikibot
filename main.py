@@ -254,7 +254,7 @@ class Article: #Creates a class representation of an article to contain function
         else:
             try:
                 content = request("get",f"{enwiki}wiki/{self.StrippedArticle}?action=edit").text
-                #URL should be stripped of params - they should only matter in GetContent. If we dont strip, we get caught by the global blacklist
+                #URL should be stripped of params - they should only matter in GetContent. If we dont strip, we get rightfully caught by the global blacklist
             except Exception as exc:
                 log(f"[Article] Warning: Failed a GRC request while trying to get {self.StrippedArticle} -> Reason: {exc}")
                 content = "" #Default to an empty string so that rawtext fails and this gets marked as "not existing"
@@ -360,6 +360,10 @@ class Article: #Creates a class representation of an article to contain function
         return self.Templates
     def GetSubpages(self):
         return Article(f"Special:PrefixIndex/{self.StrippedArticle}/").GetWikiLinks("mw-htmlform-ooui-wrapper")
+    def IsRedirect(self):
+        if not self.exists():
+            return False
+        return self.GetRawContent().startswith("#REDIRECT")
     def HasExclusion(self):
         #If the bot is excluded from editing a page, this returns True
         for template in self.GetTemplates():
