@@ -1,6 +1,6 @@
 #This task fixes the archive parameter for the {{User:MiszaBot/config}} template
 
-unsafeCases = []
+unsafeCases = {}
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
 def CheckArchiveLocations(page):
     global unsafeCases
@@ -22,7 +22,7 @@ def CheckArchiveLocations(page):
                 if not archiveLocation.startswith(currentLocation+"/"): #Not a subpage
                     verbose("Archive Fix",f"{page} currently has {archiveLocation}, but we should have something with {currentLocation}")
                     #Most common case: Result of a page move, no GIGO problems
-                    existingArchive = regex.compile("(/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee].+)").search(archiveLocation)
+                    existingArchive = regex.compile("(/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee] %\(counter\)d)").search(archiveLocation) #For the sake of my sanity, only deal with %(counter)d
                     if existingArchive:
                         wantedLocation = existingArchive.group()
                         verbose("Archive Fix",f"Attempting to preserve {wantedLocation}")
@@ -32,16 +32,11 @@ def CheckArchiveLocations(page):
                             newArchive = currentLocation+"/"+wantedLocation
                         #Verify this archive is valid by either checking if it exists or if the page has no current subpages
                         #Currently only supports %(counter)d substitution, as year and month would require much more advanced checks
-                        if not Article(newArchive.replace(r"%(counter)d","1")).exists():
-                            if "counter" in template.Args and template.Args["counter"] != "1":
-                                if Article(newArchive.replace(r"%(counter)d",template.Args["counter"])).exists():
-                                    verbose("Archive Fix","Safety tests have passed")
-                                    template.ChangeKeyData("archive",newArchive)
-                                    content = content.replace(template.Original,template.Text)
-                                    continue
+                        archivePage = Article(newArchive.replace(r"%(counter)d","1"))
+                        if not archivePage.exists() or archivePage.IsRedirect():
                             #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked manually
-                            lalert(f"[Archive Fix] {currentLocation} failed safety checks (Missing expected archives). This is something that needs human attention")
-                            unsafeCases.append(currentLocation)
+                            lalert(f"[Archive Fix] {currentLocation} failed safety checks (Missing expected archives)")
+                            unsafeCases[currentLocation] = "Missing expected archives"
                             continue
                         verbose("Archive Fix","Safety tests have passed")
                         template.ChangeKeyData("archive",newArchive)
@@ -52,7 +47,7 @@ def CheckArchiveLocations(page):
                     #While we could code something to check previous revisions or look for naming patterns, we could also leave it to humans
                     #And thats what we shall do
                     lalert(f"Couldn't find existing archive for {page}. I'm not gonna try fix this myself")
-                    unsafeCases.append(currentLocation)
+                    unsafeCases[currentLocation] = "Couldn't find valid archive parameter"
                 elif content == article.RawContent: #The earlier regex.sub caught nothing and theres no archive fail - this shouldnt happen
                     log(f"[FixArchiveLocation] {page} does not seem to be malformed. Unsure how they ended up here. Trying a null edit...")
                     content = content + "\n"
@@ -60,7 +55,7 @@ def CheckArchiveLocations(page):
         article.edit(content,f"Fix archive location for Lowercase Sigmabot III ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])",minorEdit=True)
     return True
 
-# CheckArchiveLocations(f"User_talk:{username}/sandbox")
+# CheckArchiveLocations(f"User talk:{username}/sandbox")
 looptime = 3600 #1 hour
 curtime = time.time()-looptime
 while True:
@@ -72,8 +67,10 @@ while True:
         if len(unsafeCases) == 0:
             Article(f"User:{username}/helpme/Task2").edit("No problems\n","[Task 2] No problematic archives")
         else:
-            problematicList = "\n".join([f"* [[:{page}]]" for page in unsafeCases])
-            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:\n{problematicList}\n",f"[Task 2] Requesting help on {len(unsafeCases)} archive(s)")
+            problematicList = ""
+            for page,reason in unsafeCases.items():
+                problematicList += f"\n* [[:{page}]] - {reason}"
+            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}\n",f"[Task 2] Requesting help on {len(unsafeCases)} archive(s)")
         unsafeCases.clear()
     else:
         time.sleep(1)
