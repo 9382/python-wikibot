@@ -1,28 +1,57 @@
-#This task fixes the archive parameter for the {{User:MiszaBot/config}} template
+#This task fixes the archive parameter for the {{User:MiszaBot/config}} template as well as other small factors
 
 unsafeCases = {}
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
+def DetermineBadMove(article):
+    global unsafeCases
+    #Attempts to determine if pages from before weren't moved under the new name
+    currentLocation = urllib.parse.unquote(article.StrippedArticle.replace("_"," "))
+    pagehistory = article.GetHistory(8)
+    for revision in pagehistory:
+        wasMoved,From,To = revision.IsMove()
+        if wasMoved:
+            verbose("Archive Fix",f"Examining the move from {revision.DateText} by {revision.User}")
+            if (datetime.datetime.now() - revision.Date).total_seconds() < 60*60*4:
+                log("[FixArchiveLocation] Move was too recent, avoiding fixing it just yet")
+                #unsafeCases[currentLocation] = "Move was too recent, not fixing it yet..." #Dont alert help page just yet
+            else:
+                prevPage = Article(From)
+                if not prevPage.exists():
+                    lalert("Archive Fix","Previous page doesn't exist, that isn't right")
+                    unsafeCases[currentLocation] = "Origin page of the move doesn't exist"
+                #At this point, we should be happy enough to go ahead and move pages
+                subpages = prevPage.GetSubpages()
+                for subpage in subpages:
+                    subpage = Article(subpage)
+                    if subpage.StrippedArticle.startswith(prevPage.StrippedArticle+"/Archive"):
+                        subpage.MoveTo(
+                            currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
+                            "Re-locating talkpage archive under new page title"
+                        ) #Move to new page with subpage suffix kept
+            return #Only checks the most recent move, and no further
+    unsafeCases[currentLocation] = "No recent enough page moves found"
+
 def CheckArchiveLocations(page):
     global unsafeCases
     article = Article(page)
     if not article.exists():
         #No idea how this would happen since its from a category, but oh well
-        log(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
+        lwarn(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
         return
+    if not article.StrippedArticle.startswith(f"User talk:{username}/sandbox"):
+        print("Nope to",page)
+        return True
     content = article.GetRawContent()
-    content = regex.sub("\n?\[\[Category:Pages where archive parameter is not a subpage\|?[^\]]*\]\]","",content) #Shouldn't be explicitly added
     currentLocation = urllib.parse.unquote(page.replace("_"," "))
-    for template in article.GetTemplates():
+    for template in article.GetTemplates(): #Will only fix the first template occurance, and not any more
         if archiveTemplates.search(template.Template):
             if "archive" in template.Args and not "key" in template.Args:
                 archiveLocation = template.Args["archive"]
-                #Attempt to fix the archive location
-                #Note that we should try to figure out the formatting before-hand to keep it consistent
-                #Note that this could easily fall flat when presented with GIGO as its a bit of a shot in the dark
+                #Attempt to fix the archive location, as well as cleaning up any issues left behind
                 if not archiveLocation.startswith(currentLocation+"/"): #Not a subpage
                     verbose("Archive Fix",f"{page} currently has {archiveLocation}, but we should have something with {currentLocation}")
                     #Most common case: Result of a page move, no GIGO problems
-                    existingArchive = regex.compile("(/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee] %\(counter\)d)").search(archiveLocation) #For the sake of my sanity, only deal with %(counter)d
+                    existingArchive = regex.compile("(?:/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee] %\(counter\)d)").search(archiveLocation) #For simplicity, only deal with %(counter)d
                     if existingArchive:
                         wantedLocation = existingArchive.group()
                         verbose("Archive Fix",f"Attempting to preserve {wantedLocation}")
@@ -30,27 +59,34 @@ def CheckArchiveLocations(page):
                             newArchive = currentLocation+wantedLocation
                         else:
                             newArchive = currentLocation+"/"+wantedLocation
-                        #Verify this archive is valid by either checking if it exists or if the page has no current subpages
-                        #Currently only supports %(counter)d substitution, as year and month would require much more advanced checks
+
+                        #Verify this archive is valid by checking if it exists
                         archivePage = Article(newArchive.replace(r"%(counter)d","1"))
                         if not archivePage.exists() or archivePage.IsRedirect():
-                            #Too risky to do automatically - could be a case of vandalism or major human error. Should be checked manually
-                            lalert(f"[Archive Fix] {currentLocation} failed safety checks (Missing expected archives)")
-                            unsafeCases[currentLocation] = "Missing expected archives"
-                            continue
-                        verbose("Archive Fix","Safety tests have passed")
+                            #Too risky to do automatically - could be a case of vandalism or human error. Should be checked manually
+                            lwarn(f"[FixArchiveLocation] {currentLocation} failed safety check (Missing expected archives), checking previous pages")
+                            DetermineBadMove(article)
+                            archivePage = Article(newArchive.replace(r"%(counter)d","1"))
+                            if archivePage.exists() and not archivePage.IsRedirect():
+                                lsucc("[FixArchiveLocation] Fixing archive location now that subpages have been moved")
+                                template.ChangeKeyData("archive",newArchive)
+                                content = content.replace(template.Original,template.Text)
+                            break
+
+                        verbose("Archive Fix","Safety test has been passed")
                         template.ChangeKeyData("archive",newArchive)
                         content = content.replace(template.Original,template.Text)
-                        continue
-                    #else: cry(). its GIGO time
-                    #If the above check fails, vandalism is a likely scenario
-                    #While we could code something to check previous revisions or look for naming patterns, we could also leave it to humans
-                    #And thats what we shall do
-                    lalert(f"Couldn't find existing archive for {page}. I'm not gonna try fix this myself")
-                    unsafeCases[currentLocation] = "Couldn't find valid archive parameter"
-                elif content == article.RawContent: #The earlier regex.sub caught nothing and theres no archive fail - this shouldnt happen
-                    log(f"[FixArchiveLocation] {page} does not seem to be malformed. Unsure how they ended up here. Trying a null edit...")
-                    content = content + "\n"
+                        break
+
+                    lalert(f"[FixArchiveLocation] Couldn't find recognised archive for {page}")
+                    unsafeCases[currentLocation] = "Couldn't find a recognised archive parameter"
+                    break
+
+                else: #Shouldn't be any issues?
+                    lwarn(f"[FixArchiveLocation] {page} does not seem to be malformed")
+                    unsafeCases[currentLocation] = "No issues found yet it's in the category"
+                    break
+
     if content != article.RawContent:
         article.edit(content,f"Fix archive location for Lowercase Sigmabot III ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])",minorEdit=True)
     return True
