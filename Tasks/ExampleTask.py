@@ -1,7 +1,10 @@
 #Demonstration and testing stuff
 
-time.sleep(1)
-page = Article(f"User:{username}/dummypage")
-print("Got page")
-page.MoveTo(f"User:{username}/dummypage2","Testing movement")
-print("Moved")
+page = Article(f"User talk:{username}/sandbox")
+print("Got page, examining history")
+for revision in page.GetHistory():
+	if revision.IsMinor():
+		print("Minor revision on",revision.Date,"-",revision.ID)
+	isMove,From,To = revision.IsMove()
+	if isMove:
+		print("Moving revision from",From,"to",To,"on",revision.Date,"-",revision.ID)

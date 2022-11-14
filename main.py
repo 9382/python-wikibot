@@ -2,12 +2,12 @@
 # [!] If you need to change the basic settings of the bot, please see the .env-example
 
 from dotenv import dotenv_values
-from datetime import datetime
 import urllib.parse
 import re as regex
 import threading
-import requests
 import colorama
+import datetime
+import requests
 import random
 import time
 import os
@@ -28,7 +28,7 @@ colorama.init()
 
 def currentDate():
     #The current date in YYYY-MM-DD hh:mm:ss
-    return str(datetime.fromtimestamp(time.time()//1))
+    return str(datetime.datetime.fromtimestamp(time.time()//1))
 def safeWriteToFile(filename,content,mode="w",encoding="UTF-8"):
     #Writes contents to a file, auto-creating the directory should it be missing
     if filename.find("\\") > -1:
@@ -101,14 +101,14 @@ def SubstituteIntoString(wholestr,substitute,start,end):
 
 namespaces = ["User","Wikipedia","WP","File","MediaWiki","Template","Help","Category","Portal","Draft","TimedText","Module"] #Gadget( definition) is deprecated
 pseudoNamespaces = {"CAT":"Category","H":"Help","MOS":"Wikipedia","WP":"Wikipedia","WT":"Wikipedia talk",
-                    "Project":"Wikipedia","Project_talk":"Wikipedia talk","Image":"File","Image_talk":"File talk",
+                    "Project":"Wikipedia","Project talk":"Wikipedia talk","Image":"File","Image talk":"File talk",
                     "WikiProject":"Wikipedia","T":"Template","MP":"Article","P":"Portal","MoS":"Wikipedia"} #Special cases that dont match normal sets
 def GetNamespace(articlename):
     #Simply gets the namespace of an article from its name
     for namespace in namespaces:
         if articlename.startswith(namespace+":"):
             return namespace
-        if articlename.startswith(namespace+"_talk:"):
+        if articlename.startswith(namespace+" talk:"):
             return namespace+" talk"
     prefix = articlename.split(":")[0]
     if prefix in pseudoNamespaces:
@@ -222,8 +222,56 @@ class Template: #Parses a template and returns a class object representing it
         target = self.Text[keylocation.start()+1:].split("|")[0]
         self.Text = SubstituteIntoString(self.Text,target.replace(olddata,newdata),keylocation.start()+1,keylocation.start()+len(target)+1)
 
-# class Revision: #For getting the history of pages. Currently unimplemented
-#     def __init__(self,revisionid)
+monthconversion = {"January":1,"February":2,"March":3,"April":4,"May":5,"June":6,"July":7,"August":8,"September":9,"October":10,"November":11,"December":12}
+revisionDateRegex = regex.compile('(\d+):(\d+), (\d+) (\w+) (\d+)')
+def parseRevisionDate(text):
+    hour,minute,day,month,year = revisionDateRegex.search(text).groups()
+    return datetime.datetime(int(year),monthconversion[month],int(day),int(hour),int(minute))
+
+#Collected data is layed out below
+revisionRegex = regex.compile(
+    '<li data-mw-revid="(\d+)".+?' #ID
+    + 'class="mw-changeslist-date" title="[^"]+">([\w\d:, ]+)</a>.+?' #Date
+    + '<span class=\'history-user\'><a [^>]+><bdi>([^<]+)</bdi>.+?' #User
+    + '<span class="history-size mw-diff-bytes" data-mw-bytes="(\d+)">.+?' #Size
+    + 'class="mw-plusminus-\w+ mw-diff-bytes" title="[\d,]+ [\w ]+">([+−]?\d+)</(?:span|strong)>.+?' #Size change
+    + '<span class="comment comment--without-parentheses">(.+?)</span>' #Revision summary
+) #Note: Watch out - the negative in diff-bytes is (−) not (-)
+revisionMoveRegex = regex.compile('(.+?) moved page <a [^>]+>([^<]+)</a> to <a [^>]+>([^<]+)</a>')
+class Revision: #For getting the history of pages
+    def __init__(self,revisionText):
+        self.RawText = revisionText
+        regexResults = revisionRegex.search(revisionText)
+        if not regexResults:
+            lerror("History search of text failed the regex check.\nData: "+str(revisionText))
+            self.Failed = True
+            return
+        rID,rDate,rUser,rSize,rSizeChange,rSummary = regexResults.groups()
+        rID = int(rID)
+        if rSizeChange[0] == "+":
+            rSizeChange = int(rSizeChange[1:])
+        elif rSizeChange[0] == "−":
+            rSizeChange = int(rSizeChange[1:])*-1
+        else:
+            rSizeChange = int(rSizeChange)
+        self.ID = rID
+        self.DateText = rDate
+        self.Date = parseRevisionDate(rDate)
+        self.User = rUser
+        self.Size = rSize
+        self.SizeChange = rSizeChange
+        self.Summary = rSummary
+        self.Failed = False
+    def IsMinor(self):
+        return self.RawText.find("<abbr class=\"minoredit\" title=") > -1
+    def IsMove(self):
+        #Returns wasMoved, From, To
+        #This will ignore move revisions that created a page by placing redirect categories (the page left behind)
+        if self.SizeChange == 0:
+            moveData = revisionMoveRegex.search(self.Summary)
+            if moveData and moveData.group(1) == self.User:
+                return True,moveData.group(2),moveData.group(3)
+        return False,None,None
 
 activelyStopped = False
 rawtextreg = regex.compile('<textarea [^>]+>([^<]+)</textarea>')
@@ -233,6 +281,7 @@ bracketbalancereg = regex.compile('{{|}}') #For templates
 stripurlparams = regex.compile('([^?#&]+)([?#&].+)?')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
+        articleName = articleName.replace("_"," ")
         self.Article = articleName
         self.StrippedArticle = stripurlparams.search(self.Article).group(1)
         if self.Article != self.StrippedArticle:
@@ -242,6 +291,8 @@ class Article: #Creates a class representation of an article to contain function
         self.Content = None #Avoid getting directly outside of class functions
         self.RawContent = None #Same as above
         self.Templates = None #Same as above
+    def __str__(self):
+        return self.StrippedArticle
     def GetRawContent(self,forceNew=False):
         if self.RawContent != None and not forceNew:
             return self.RawContent
@@ -299,7 +350,7 @@ class Article: #Creates a class representation of an article to contain function
             return lwarn(f"Warning: Attempted to make empty edit to {self.Article}. The edit has been cancelled")
         if self.HasExclusion() and not bypassExclusion:
             #Its been requested we stay away, so we will
-            return log(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
+            return lwarn(f"Warning: Refusing to edit page that has exclusion blocked ({self.Article})")
         if INDEV:
             if not (self.Namespace in ["User","User talk"] and self.Article.find(username) > -1):
                 #Not in bot's user space, and indev, so get out
@@ -358,6 +409,16 @@ class Article: #Creates a class representation of an article to contain function
         self.Templates = templates
         verbose("Article",f"Registered {len(self.Templates)} templates for {self.Article}")
         return self.Templates
+    def GetHistory(self,limit=50):
+        historyContent = Article(self.StrippedArticle+f"?action=history&limit={limit}").GetContent()
+        revisions = []
+        for line in historyContent.split("\n"):
+            if line.startswith("<li data-mw-revid="):
+                revision = Revision(line)
+                if not revision.Failed:
+                    revisions.append(revision)
+        verbose("Article",f"Found {len(revisions)} revisions during history check of {self.StrippedArticle}")
+        return revisions
     def GetSubpages(self):
         return Article(f"Special:PrefixIndex/{self.StrippedArticle}/").GetWikiLinks("mw-htmlform-ooui-wrapper")
     def IsRedirect(self):
@@ -391,17 +452,19 @@ class Article: #Creates a class representation of an article to contain function
                 verbose("HasExclusion","Exclusion check has managed to not hit a return")
     def MoveTo(self,newPage,reason,leaveRedirect=True):
         #Move the page from its current location to a new one
+        #Avoid supressing redirects unless necessary
         namespaceID = GetNamespaceID(newPage)
         newPage = StripNamespace(newPage) #Remove any provided namespace
         leaveRedirect = (leaveRedirect and 1) or 0
         if INDEV:
             if not (self.Namespace in ["User","User talk"] and self.Article.find(username) > -1):
                 #Not in bot's user space, and indev, so get out
+                print("Violations make me :(",self.Namespace,self,Article,username)
                 return lwarn(f"Warning: Attempted to move a page in a space other than our own while in development mode ({self.Article})")
             reason += " [INDEV]"
         if not SUBMITEDITS:
-            return print(f"Not moving {self.StrippedArticle} to {newPage} as SUBMITEDITS is set to False")
-        result = CreateFormRequest(enwiki+f"w/index.php?title=Special:MovePage&action=submit",
+            return lwarn(f"Not moving {self.StrippedArticle} to {newPage} as SUBMITEDITS is set to False")
+        result = CreateFormRequest(enwiki+"w/index.php?title=Special:MovePage&action=submit",
             {"wpNewTitleNs":namespaceID,"wpNewTitleMain":newPage,"wpReason":reason,"wpOldTitle":self.StrippedArticle,"wpEditToken":GetTokenForType("csrf"),"wpLeaveRedirect":leaveRedirect}
         )
         return result
