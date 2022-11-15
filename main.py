@@ -281,7 +281,7 @@ bracketbalancereg = regex.compile('{{|}}') #For templates
 stripurlparams = regex.compile('([^?#&]+)([?#&].+)?')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
-        articleName = articleName.replace("_"," ")
+        articleName = urllib.parse.unquote(articleName.replace("_"," "))
         self.Article = articleName
         self.StrippedArticle = stripurlparams.search(self.Article).group(1)
         if self.Article != self.StrippedArticle:
