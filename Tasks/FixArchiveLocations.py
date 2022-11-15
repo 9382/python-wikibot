@@ -11,7 +11,7 @@ def DetermineBadMove(article):
         wasMoved,From,To = revision.IsMove()
         if wasMoved:
             verbose("Archive Fix",f"Examining the move from {revision.DateText} by {revision.User}")
-            if (datetime.datetime.now() - revision.Date).total_seconds() < 60*60*4:
+            if (datetime.datetime.now() - revision.Date).total_seconds() < 60*60*6:
                 log("[FixArchiveLocation] Move was too recent, avoiding fixing it just yet")
                 #unsafeCases[currentLocation] = "Move was too recent, not fixing it yet..." #Dont alert help page just yet
             else:
