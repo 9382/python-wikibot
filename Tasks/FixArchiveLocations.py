@@ -20,6 +20,7 @@ def DetermineBadMove(article):
                     lalert("Archive Fix","Previous page doesn't exist, that isn't right")
                     unsafeCases[currentLocation] = "Origin page of the move doesn't exist"
                 #At this point, we should be happy enough to go ahead and move pages
+                hasMoved = False
                 subpages = prevPage.GetSubpages()
                 for subpage in subpages:
                     subpage = Article(subpage)
@@ -28,6 +29,10 @@ def DetermineBadMove(article):
                             currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
                             "Re-locating talkpage archive under new page title"
                         ) #Move to new page with subpage suffix kept
+                        hasMoved = True
+                if not hasMoved:
+                    unsafeCases[currentLocation] = "Couldn't find any pages to move"
+                return hasMoved
             return #Only checks the most recent move, and no further
     unsafeCases[currentLocation] = "No recent enough page moves found"
 
@@ -65,26 +70,29 @@ def CheckArchiveLocations(page):
                         if not archivePage.exists() or archivePage.IsRedirect():
                             #Too risky to do automatically - could be a case of vandalism or human error. Should be checked manually
                             lwarn(f"[FixArchiveLocation] {currentLocation} failed safety check (Missing expected archives), checking previous pages")
-                            DetermineBadMove(article)
-                            archivePage = Article(newArchive.replace(r"%(counter)d","1"))
-                            if archivePage.exists() and not archivePage.IsRedirect():
-                                lsucc("[FixArchiveLocation] Fixing archive location now that subpages have been moved")
-                                template.ChangeKeyData("archive",newArchive)
-                                content = content.replace(template.Original,template.Text)
+                            wasFixed = DetermineBadMove(article)
+                            if wasFixed:
+                                archivePage = Article(newArchive.replace(r"%(counter)d","1"))
+                                if archivePage.exists() and not archivePage.IsRedirect():
+                                    lsucc("[FixArchiveLocation] Fixing archive location now that subpages have been moved")
+                                    template.ChangeKeyData("archive",newArchive)
+                                    content = content.replace(template.Original,template.Text)
+                                else:
+                                    lwarn("[FixArchiveLocation] We moved some subpages yet it seems broken still?")
+                                    unsafeCases[currentLocation] = "Subpages moved, but can't confirm fix"
                             break
-
-                        verbose("Archive Fix","Safety test has been passed")
-                        template.ChangeKeyData("archive",newArchive)
-                        content = content.replace(template.Original,template.Text)
+                        else:
+                            verbose("Archive Fix","Safety test has been passed")
+                            template.ChangeKeyData("archive",newArchive)
+                            content = content.replace(template.Original,template.Text)
+                            break
+                    else:
+                        lalert(f"[FixArchiveLocation] Couldn't find recognised archive for {page}")
+                        unsafeCases[currentLocation] = "Couldn't find a recognised archive parameter"
                         break
-
-                    lalert(f"[FixArchiveLocation] Couldn't find recognised archive for {page}")
-                    unsafeCases[currentLocation] = "Couldn't find a recognised archive parameter"
-                    break
-
-                else: #Shouldn't be any issues?
+                else:
                     lwarn(f"[FixArchiveLocation] {page} does not seem to be malformed")
-                    unsafeCases[currentLocation] = "No issues found yet it's in the category"
+                    unsafeCases[currentLocation] = "No issues found but it's in the category"
                     break
 
     if content != article.RawContent:
