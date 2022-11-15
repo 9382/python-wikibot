@@ -43,9 +43,6 @@ def CheckArchiveLocations(page):
         #No idea how this would happen since its from a category, but oh well
         lwarn(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
         return
-    if not article.StrippedArticle.startswith(f"User talk:{username}/sandbox"):
-        print("Nope to",page)
-        return True
     content = article.GetRawContent()
     currentLocation = urllib.parse.unquote(page.replace("_"," "))
     for template in article.GetTemplates(): #Will only fix the first template occurance, and not any more
