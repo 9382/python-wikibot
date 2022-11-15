@@ -539,12 +539,22 @@ while True:
     if tasks == 1:
         lalert("All tasks seem to have been terminated or finished")
         break
-    panic = Article(f"User:{username}/panic")
-    if panic.exists():
-        if panic.GetRawContent().strip().lower() == "true":
-            activelyStopped = True
-        else:
-            activelyStopped = False
+    #Note: If you get a login fail
+    try:
+        confirmStatus = request("get",enwiki+"w/api.php?action=query&assert=user&format=json").json()
+    except Exception as exc:
+        lalert(f"assert=user request failed. Reason: {exc}")
     else:
-        verbose("Main Thread",f"Panic page (User:{username}/panic) doesn't exist")
+        if "error" in confirmStatus and confirmStatus["error"]["code"] == "assertuserfailed":
+            activelyStopped = True
+            lerror(f"The assert=user check has failed. Stopping all bot actions until script is restarted")
+        else:
+            panic = Article(f"User:{username}/panic")
+            if panic.exists():
+                if panic.GetRawContent().strip().lower() == "true":
+                    activelyStopped = True
+                else:
+                    activelyStopped = False
+            else:
+                verbose("Main Thread",f"Panic page (User:{username}/panic) doesn't exist")
 input("Press enter to exit...")
