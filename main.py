@@ -16,7 +16,7 @@ envvalues = dotenv_values()
 SUBMITEDITS = envvalues["SUBMITEDITS"].lower() == "true"
 INDEV = envvalues["INDEV"].lower() == "true"
 EnabledTasks = envvalues["TASKS"].lower().replace("; ",";").split(";")
-maxEditsPerMinute = int(envvalues["EDITSPERMIN"])
+maxActionsPerMinute = int(envvalues["EDITSPERMIN"])
 maxEdits = int(envvalues["MAXEDITS"])
 
 isVerbose = envvalues["VERBOSE"].lower() == "true"
@@ -142,12 +142,12 @@ def ChangeWikiPage(article,newcontent,editsummary,minorEdit):
         while True:
             time.sleep(60)
     editCount += 1
-    if editCount % 5 == 0:
+    if editCount + moveCount % 5 == 0:
         print("Edit count:",editCount) #Purely statistical for the console
     if not SUBMITEDITS:
         return print(f"Not submitting changes to {article} as SUBMITEDITS is set to False")
     log(f"Making edits to {article}:\n    {editsummary}")
-    EPS = 60/maxEditsPerMinute #Incase you dont wanna go too fast
+    EPS = 60/maxActionsPerMinute #Incase you dont wanna go too fast
     if time.time()-lastEditTime < EPS:
         print("Waiting for edit cooldown to wear off")
     while time.time()-lastEditTime < EPS:
@@ -165,6 +165,27 @@ def ChangeWikiPage(article,newcontent,editsummary,minorEdit):
         lwarn(f"\n\nWarning: The bot has hit its edit count limit of {maxEdits} and will not make any further edits. Pausing script indefinitely...")
         while True:
             time.sleep(60)
+lastMoveTime = 0 #Moves and edits have independent ratelimits
+moveCount = 0
+def MoveWikiPage(article,newPage,reason,leaveRedirect):
+    #Exists for the same reason as the function above
+    global lastMoveTime
+    global moveCount
+    if editCount + moveCount >= maxEdits and maxEdits > 0:
+        lwarn(f"\n\nWarning: The bot has hit its action count limit of {maxEdits} and will not make any further actions. The action to {article} has been prevented. Pausing script indefinitely...")
+        while True:
+            time.sleep(60)
+    moveCount += 1
+    if moveCount % 5 == 0:
+        print("Move count:",moveCount)
+    log(f"Moving {article} to {newPage}{leaveRedirect==False and ' (Redirect supressed)' or ''}:\n    {reason}")
+    EPS = 60/maxActionsPerMinute
+    if time.time()-lastMoveTime < EPS:
+        print("Waiting for move cooldown to wear off")
+    while time.time()-lastMoveTime < EPS:
+        time.sleep(.2)
+    lastMoveTime = time.time()
+    return True
 def ExcludeTag(text,tag): #Returns a filtered version. Most useful for nowiki. Unused
     upperlower = "".join([f"[{x.upper()}{x.lower()}]" for x in tag])
     finalreg = f"<{upperlower}(>|[^>]*[^/]>)[\s\S]*?</{upperlower} *>"
@@ -464,10 +485,12 @@ class Article: #Creates a class representation of an article to contain function
             reason += " [INDEV]"
         if not SUBMITEDITS:
             return lwarn(f"Not moving {self.StrippedArticle} to {newPage} as SUBMITEDITS is set to False")
-        result = CreateFormRequest(enwiki+"w/index.php?title=Special:MovePage&action=submit",
-            {"wpNewTitleNs":namespaceID,"wpNewTitleMain":newPage,"wpReason":reason,"wpOldTitle":self.StrippedArticle,"wpEditToken":GetTokenForType("csrf"),"wpLeaveRedirect":leaveRedirect}
-        )
-        return result
+        isValid = MoveWikiPage(self,newPage,reason,leaveRedirect)
+        if isValid:
+            result = CreateFormRequest(enwiki+"w/index.php?title=Special:MovePage&action=submit",
+                {"wpNewTitleNs":namespaceID,"wpNewTitleMain":newPage,"wpReason":reason,"wpOldTitle":self.StrippedArticle,"wpEditToken":GetTokenForType("csrf"),"wpLeaveRedirect":leaveRedirect}
+            )
+            return result
 
 def IterateCategory(category,torun):
     #Iterates all wikilinks of a category, even if multi-paged
