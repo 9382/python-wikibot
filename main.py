@@ -255,7 +255,7 @@ revisionRegex = regex.compile(
     + 'class="mw-changeslist-date" title="[^"]+">([\w\d:, ]+)</a>.+?' #Date
     + '<span class=\'history-user\'><a [^>]+><bdi>([^<]+)</bdi>.+?' #User
     + '<span class="history-size mw-diff-bytes" data-mw-bytes="(\d+)">.+?' #Size
-    + 'class="mw-plusminus-\w+ mw-diff-bytes" title="[\d,]+ [\w ]+">([+−]?\d+)</(?:span|strong)>.+?' #Size change
+    + 'class="mw-plusminus-\w+ mw-diff-bytes" title="[\d,]+ [\w ]+">([+−]?[\d,]+)</(?:span|strong)>.+?' #Size change
     + '<span class="comment comment--without-parentheses">(.+?)</span>' #Revision summary
 ) #Note: Watch out - the negative in diff-bytes is (−) not (-)
 revisionMoveRegex = regex.compile('(.+?) moved page <a [^>]+>([^<]+)</a> to <a [^>]+>([^<]+)</a>')
@@ -269,6 +269,7 @@ class Revision: #For getting the history of pages
             return
         rID,rDate,rUser,rSize,rSizeChange,rSummary = regexResults.groups()
         rID = int(rID)
+        rSizeChange = rSizeChange.replace(",","")
         if rSizeChange[0] == "+":
             rSizeChange = int(rSizeChange[1:])
         elif rSizeChange[0] == "−":
