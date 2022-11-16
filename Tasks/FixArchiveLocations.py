@@ -22,14 +22,23 @@ def DetermineBadMove(article):
                 #At this point, we should be happy enough to go ahead and move pages
                 hasMoved = False
                 subpages = prevPage.GetSubpages()
+                articleSubpages = []
                 for subpage in subpages:
-                    subpage = Article(subpage)
-                    if subpage.StrippedArticle.startswith(prevPage.StrippedArticle+"/Archive"):
-                        subpage.MoveTo(
-                            currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
-                            "Re-locating talkpage archive under new page title"
-                        ) #Move to new page with subpage suffix kept
-                        hasMoved = True
+                    articleSubpages.append(Article(subpage)) #Avoid double-grabbing
+                #Verify all subpages are movable within reason
+                for subpage in articleSubpages:
+                    if not subpage.StrippedArticle.startswith(prevPage.StrippedArticle+"/Archive"):
+                        #If the page is not an archive, to avoid the "A/B/Subpage listed under A" situation, ensure the page doesnt have a non-talk version
+                        if subpage.GetLinkedPage().exists():
+                            unsafeCases[currentLocation] = "Some subpages didn't meet the automove criteria"
+                            return
+                #All cool, go ahead and move
+                for subpage in articleSubpages:
+                    subpage.MoveTo(
+                        currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
+                        "Re-locating talkpage archive under new page title"
+                    ) #Move to new page with subpage suffix kept
+                    hasMoved = True
                 if not hasMoved:
                     unsafeCases[currentLocation] = "Couldn't find any pages to move"
                 return hasMoved
