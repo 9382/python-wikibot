@@ -20,8 +20,10 @@ def DetermineBadMove(article):
                     lalert("Archive Fix","Previous page doesn't exist, that isn't right")
                     unsafeCases[currentLocation] = "Origin page of the move doesn't exist"
                 #At this point, we should be happy enough to go ahead and move pages
-                hasMoved = False
                 subpages = prevPage.GetSubpages()
+                if len(subpages) == 0:
+                    unsafeCases[currentLocation] = "Couldn't find any pages to move"
+                    return
                 articleSubpages = []
                 for subpage in subpages:
                     articleSubpages.append(Article(subpage)) #Avoid double-grabbing
@@ -38,10 +40,7 @@ def DetermineBadMove(article):
                         currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
                         "Re-locating talkpage archive under new page title"
                     ) #Move to new page with subpage suffix kept
-                    hasMoved = True
-                if not hasMoved:
-                    unsafeCases[currentLocation] = "Couldn't find any pages to move"
-                return hasMoved
+                return True
             return #Only checks the most recent move, and no further
     unsafeCases[currentLocation] = "No recent enough page moves found"
 
