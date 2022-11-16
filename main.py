@@ -103,25 +103,30 @@ namespaces = ["User","Wikipedia","WP","File","MediaWiki","Template","Help","Cate
 pseudoNamespaces = {"CAT":"Category","H":"Help","MOS":"Wikipedia","WP":"Wikipedia","WT":"Wikipedia talk",
                     "Project":"Wikipedia","Project talk":"Wikipedia talk","Image":"File","Image talk":"File talk",
                     "WikiProject":"Wikipedia","T":"Template","MP":"Article","P":"Portal","MoS":"Wikipedia"} #Special cases that dont match normal sets
-def GetNamespace(articlename):
-    #Simply gets the namespace of an article from its name
-    for namespace in namespaces:
-        if articlename.startswith(namespace+":"):
-            return namespace
-        if articlename.startswith(namespace+" talk:"):
-            return namespace+" talk"
-    prefix = articlename.split(":")[0]
-    if prefix in pseudoNamespaces:
-        return pseudoNamespaces[prefix]
-    if articlename.startswith("Talk:"):
-        return "Talk"
-    if articlename.startswith("Special:"):
-        return "Special"
-    return "Article"
 namespaceIDs = {"Article":0,"Talk":1,"User":2,"User talk":3,"Wikipedia":4,"Wikipedia talk":5,"File":6,"File talk":7,
                 "MediaWiki":8,"MediaWiki talk":9,"Template":10,"Template talk":11,"Help":12,"Help talk":13,
                 "Category":14,"Category talk":15,"Portal":100,"Portal talk":101,"Draft":118,"Draft talk":119,
                 "TimedText":710,"TimedText talk":711,"Module":828,"Module talk":829,"Special":-1,"Media":-2}
+def GetNamespace(articlename):
+    #Simply gets the namespace of an article from its name
+    if type(articlename) == str:
+        for namespace in namespaces:
+            if articlename.startswith(namespace+":"):
+                return namespace
+            if articlename.startswith(namespace+" talk:"):
+                return namespace+" talk"
+        prefix = articlename.split(":")[0]
+        if prefix in pseudoNamespaces:
+            return pseudoNamespaces[prefix]
+        if articlename.startswith("Talk:"):
+            return "Talk"
+        if articlename.startswith("Special:"):
+            return "Special"
+        return "Article"
+    elif type(articlename) == int:
+        for namespace,nsid in namespaceIDs.items():
+            if nsid == articlename:
+                return namespace
 def GetNamespaceID(articlename):
     return namespaceIDs[GetNamespace(articlename)]
 def StripNamespace(articlename):
@@ -431,6 +436,15 @@ class Article: #Creates a class representation of an article to contain function
         self.Templates = templates
         verbose("Article",f"Registered {len(self.Templates)} templates for {self.Article}")
         return self.Templates
+    def GetLinkedPage(self):
+        #Article gets Talk, Talk gets Article, you get the idea
+        ID = GetNamespaceID(self.StrippedArticle)
+        if ID < 0: #Special pages have no talk
+            return self
+        if ID % 2 == 0:
+            return Article(GetNamespace(ID+1) + ":" + StripNamespace(self.StrippedArticle))
+        else:
+            return Article(GetNamespace(ID-1) + ":" + StripNamespace(self.StrippedArticle))
     def GetHistory(self,limit=50):
         historyContent = Article(self.StrippedArticle+f"?action=history&limit={limit}").GetContent()
         revisions = []
