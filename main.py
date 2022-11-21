@@ -261,7 +261,11 @@ revisionRegex = regex.compile(
     + '<span class=\'history-user\'><a [^>]+><bdi>([^<]+)</bdi>.+?' #User
     + '<span class="history-size mw-diff-bytes" data-mw-bytes="(\d+)">.+?' #Size
     + 'class="mw-plusminus-\w+ mw-diff-bytes" title="[\d,]+ [\w ]+">([+−]?[\d,]+)</(?:span|strong)>.+?' #Size change
-    + '<span class="comment comment--without-parentheses">(.+?)</span>' #Revision summary
+    + '<span class="comment (?:' #Revision summary start
+        + 'comment--without-parentheses">(.+?)' #Revision summary given
+    + '|'
+        + 'mw-comment-none">(No edit summary)' #Revision summary not given
+    + ')</span>' #Revision summary end
 ) #Note: Watch out - the negative in diff-bytes is (−) not (-)
 revisionMoveRegex = regex.compile('(.+?) moved page <a [^>]+>([^<]+)</a> to <a [^>]+>([^<]+)</a>')
 class Revision: #For getting the history of pages
@@ -272,7 +276,7 @@ class Revision: #For getting the history of pages
             lerror("History search of text failed the regex check.\nData: "+str(revisionText))
             self.Failed = True
             return
-        rID,rDate,rUser,rSize,rSizeChange,rSummary = regexResults.groups()
+        rID,rDate,rUser,rSize,rSizeChange,rSummary,rNoSummary = regexResults.groups()
         rID = int(rID)
         rSizeChange = rSizeChange.replace(",","")
         if rSizeChange[0] == "+":
@@ -287,7 +291,10 @@ class Revision: #For getting the history of pages
         self.User = rUser
         self.Size = rSize
         self.SizeChange = rSizeChange
-        self.Summary = rSummary
+        if rNoSummary:
+            self.Summary = ""
+        else:
+            self.Summary = rSummary
         self.Failed = False
     def IsMinor(self):
         return self.RawText.find("<abbr class=\"minoredit\" title=") > -1
