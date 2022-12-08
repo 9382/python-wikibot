@@ -40,7 +40,7 @@ def DetermineBadMove(article):
                         currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
                         "Re-locating talkpage archive under new page title"
                     ) #Move to new page with subpage suffix kept
-                return True
+                return len(articleSubpages)
             return #Only checks the most recent move, and no further
     unsafeCases[currentLocation] = "No recent enough page moves found"
 
@@ -49,10 +49,11 @@ def CheckArchiveLocations(page):
     article = Article(page)
     if not article.exists():
         #No idea how this would happen since its from a category, but oh well
-        lwarn(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
+        lalert(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
         return
     content = article.GetRawContent()
     currentLocation = urllib.parse.unquote(page.replace("_"," "))
+    extraNote = ""
     for template in article.GetTemplates(): #Will only fix the first template occurance, and not any more
         if archiveTemplates.search(template.Template):
             if "archive" in template.Args and not "key" in template.Args:
@@ -73,7 +74,7 @@ def CheckArchiveLocations(page):
                         #Verify this archive is valid by checking if it exists
                         archivePage = Article(newArchive.replace(r"%(counter)d","1"))
                         if not archivePage.exists() or archivePage.IsRedirect():
-                            #Too risky to do automatically - could be a case of vandalism or human error. Should be checked manually
+                            #At this point, we attempt to move pages from the old name, in case the mover just happened to forget
                             lwarn(f"[FixArchiveLocation] {currentLocation} failed safety check (Missing expected archives), checking previous pages")
                             wasFixed = DetermineBadMove(article)
                             if wasFixed:
@@ -82,26 +83,33 @@ def CheckArchiveLocations(page):
                                     lsucc("[FixArchiveLocation] Fixing archive location now that subpages have been moved")
                                     template.ChangeKeyData("archive",newArchive)
                                     content = content.replace(template.Original,template.Text)
+                                    if wasFixed > 1:
+                                        extraNote = f"; {wasFixed} subpages moved"
+                                    elif wasFixed == 1:
+                                        extraNote = f"; {wasFixed} subpage moved"
                                 else:
                                     lwarn("[FixArchiveLocation] We moved some subpages yet it seems broken still?")
                                     unsafeCases[currentLocation] = "Subpages moved, but can't confirm fix"
                             break
-                        else:
+                        else: #Archive exists just fine
                             verbose("Archive Fix","Safety test has been passed")
                             template.ChangeKeyData("archive",newArchive)
                             content = content.replace(template.Original,template.Text)
                             break
-                    else:
+                    else: #Regex did not match
                         lalert(f"[FixArchiveLocation] Couldn't find recognised archive for {page}")
-                        unsafeCases[currentLocation] = "Couldn't find a recognised archive parameter"
+                        unsafeCases[currentLocation] = "Couldn't find a recognised archive value"
                         break
-                else:
+                else: #Value passed the test and shouldn't be categorised
                     lwarn(f"[FixArchiveLocation] {page} does not seem to be malformed")
                     unsafeCases[currentLocation] = "No issues found but it's in the category"
                     break
+            elif not "archive" in template.Args: #No archive key
+                lwarn(f"[FixArchiveLocation] {page}'s template doesn't have an archive key")
+                unsafeCases[currentLocation] = "No archive key present"
 
     if content != article.RawContent:
-        article.edit(content,f"Fix archive location for Lowercase Sigmabot III ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])",minorEdit=True)
+        article.edit(content,f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])",minorEdit=True)
     return True
 
 # CheckArchiveLocations(f"User talk:{username}/sandbox")
@@ -109,17 +117,18 @@ looptime = 3600 #1 hour
 curtime = time.time()-looptime
 while True:
     if curtime + looptime < time.time():
+        print() #testing
         log("[FixArchiveLocation] Beginning cycle")
         curtime = curtime + looptime
         IterateCategory("Category:Pages where archive parameter is not a subpage",CheckArchiveLocations)
         log(f"[FixArchiveLocation] Finished cycle in {time.time()-curtime} seconds. Next cycle will occur in {curtime+looptime-time.time()} seconds")
         if len(unsafeCases) == 0:
-            Article(f"User:{username}/helpme/Task2").edit("No problems\n","[Task 2] No problematic archives")
+            Article(f"User:{username}/helpme/Task2").edit("No problems\n","[Task 2] No problems")
         else:
             problematicList = ""
             for page,reason in unsafeCases.items():
                 problematicList += f"\n* [[:{page}]] - {reason}"
-            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}\n",f"[Task 2] Requesting help on {len(unsafeCases)} archive(s)")
+            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}\n",f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
         unsafeCases.clear()
     else:
         time.sleep(1)
