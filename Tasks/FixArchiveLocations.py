@@ -17,7 +17,7 @@ def DetermineBadMove(article):
             else:
                 prevPage = Article(From)
                 if not prevPage.exists():
-                    lalert("Archive Fix","Previous page doesn't exist, that isn't right")
+                    lwarn("[FixArchiveLocation] Previous page doesn't exist, that isn't right")
                     unsafeCases[currentLocation] = "Origin page of the move doesn't exist"
                 #At this point, we should be happy enough to go ahead and move pages
                 subpages = prevPage.GetSubpages()
