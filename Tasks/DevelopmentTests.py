@@ -8,8 +8,8 @@
 
 # print(page.GetSubpages())
 
-dummy = f"User:{username}/dummy%27%22%26%3Fpage"
-title = fr"User:{username}/title%27%22%26%3Ftest2"
+dummy = f"User:{username}/dummy'\"%26%3Fpage"
+title = fr"User:{username}/title'\"26%3Ftest"
 
 def MainTester(page):
     article = Article(page)

@@ -150,6 +150,7 @@ def ChangeWikiPage(article,newcontent,editsummary,minorEdit):
     if editCount + moveCount % 5 == 0:
         print("Edit count:",editCount) #Purely statistical for the console
     if not SUBMITEDITS:
+        #open(urllib.parse.quote(article).replace("/","slash")+".txt","w").write(newcontent)
         return print(f"Not submitting changes to {article} as SUBMITEDITS is set to False")
     log(f"Making edits to {article}:\n    {editsummary}")
     EPS = 60/maxActionsPerMinute #Incase you dont wanna go too fast
@@ -255,9 +256,9 @@ def parseRevisionDate(text):
     return datetime.datetime(int(year),monthconversion[month],int(day),int(hour),int(minute))
 
 def validateTextForArticle(text):
-    return regex.sub("&",r"%26", regex.sub("\?",r"%3F", ( #quote ? and & for title safety
-        regex.sub("&amp;","&", regex.sub("&quot;","\"", regex.sub("&#039;","'",text))) #Remove &xyz;
-    )))
+    return urllib.parse.unquote(
+        text.replace("&#039;","'").replace("&quot;","\"").replace("&amp;","&")
+    ).replace("?",r"%3F").replace("&",r"%26")
 
 #Collected data is layed out below
 revisionRegex = regex.compile(
@@ -324,10 +325,13 @@ class Article: #Creates a class representation of an article to contain function
     def __init__(self,articleName):
         articleName = articleName.replace("_"," ")
         self.Article = articleName
+        #Strip before standardising to avoid understripping. Article stays untouched as the (nearly) raw input
         self.StrippedArticle = stripurlparams.search(self.Article).group(1)
         if self.Article != self.StrippedArticle:
             verbose("Article",f"Just stripped '{stripurlparams.search(self.Article).group(2)}' from {self.StrippedArticle}")
-        self.ParsedArticle = urllib.parse.unquote(self.StrippedArticle)
+        #Standardise naming to avoid differences depending on how it was grabbed
+        self.StrippedArticle = validateTextForArticle(self.StrippedArticle)
+        self.ParsedArticle = urllib.parse.unquote(self.StrippedArticle) #Should be avoided in sensitive code due to the presence of raw-text ? and &
         self.Namespace = GetNamespace(articleName)
         self.OriginalContent = None #Dont change this
         self.Content = None #Avoid getting directly outside of class functions
