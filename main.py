@@ -448,7 +448,9 @@ class Article: #Creates a class representation of an article to contain function
         ID = GetNamespaceID(self.StrippedArticle)
         if ID < 0: #Special pages have no talk
             return self
-        if ID % 2 == 0:
+        elif ID == 1: #Special case for converting to article
+            return Article(StripNamespace(self.StrippedArticle))
+        elif ID % 2 == 0:
             return Article(GetNamespace(ID+1) + ":" + StripNamespace(self.StrippedArticle))
         else:
             return Article(GetNamespace(ID-1) + ":" + StripNamespace(self.StrippedArticle))
@@ -467,7 +469,7 @@ class Article: #Creates a class representation of an article to contain function
     def IsRedirect(self):
         if not self.exists():
             return False
-        return self.GetRawContent().startswith("#REDIRECT")
+        return self.GetRawContent().startswith("#REDIRECT") #Good enough
     def HasExclusion(self):
         #If the bot is excluded from editing a page, this returns True
         for template in self.GetTemplates():
