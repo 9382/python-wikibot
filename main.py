@@ -254,6 +254,11 @@ def parseRevisionDate(text):
     hour,minute,day,month,year = revisionDateRegex.search(text).groups()
     return datetime.datetime(int(year),monthconversion[month],int(day),int(hour),int(minute))
 
+def validateTextForArticle(text):
+    return regex.sub("&",r"%26", regex.sub("\?",r"%3F", ( #quote ? and & for title safety
+        regex.sub("&amp;","&", regex.sub("&quot;","\"", regex.sub("&#039;","'",text))) #Remove &xyz;
+    )))
+
 #Collected data is layed out below
 revisionRegex = regex.compile(
     '<li data-mw-revid="(\d+)".+?' #ID
@@ -296,15 +301,17 @@ class Revision: #For getting the history of pages
         else:
             self.Summary = rSummary
         self.Failed = False
+
     def IsMinor(self):
         return self.RawText.find("<abbr class=\"minoredit\" title=") > -1
+
     def IsMove(self):
         #Returns wasMoved, From, To
         #This will ignore move revisions that created a page by placing redirect categories (the page left behind)
         if self.SizeChange == 0:
             moveData = revisionMoveRegex.search(self.Summary)
             if moveData and moveData.group(1) == self.User:
-                return True,moveData.group(2),moveData.group(3)
+                return True,validateTextForArticle(moveData.group(2)),validateTextForArticle(moveData.group(3))
         return False,None,None
 
 activelyStopped = False
@@ -315,18 +322,19 @@ bracketbalancereg = regex.compile('{{|}}') #For templates
 stripurlparams = regex.compile('([^?#&]+)([?#&].+)?')
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self,articleName):
-        articleName = urllib.parse.unquote(articleName.replace("_"," "))
+        articleName = articleName.replace("_"," ")
         self.Article = articleName
         self.StrippedArticle = stripurlparams.search(self.Article).group(1)
         if self.Article != self.StrippedArticle:
             verbose("Article",f"Just stripped '{stripurlparams.search(self.Article).group(2)}' from {self.StrippedArticle}")
+        self.ParsedArticle = urllib.parse.unquote(self.StrippedArticle)
         self.Namespace = GetNamespace(articleName)
         self.OriginalContent = None #Dont change this
         self.Content = None #Avoid getting directly outside of class functions
         self.RawContent = None #Same as above
         self.Templates = None #Same as above
     def __str__(self):
-        return self.StrippedArticle
+        return self.ParsedArticle
     def GetRawContent(self,forceNew=False):
         if self.RawContent != None and not forceNew:
             return self.RawContent
@@ -508,11 +516,11 @@ class Article: #Creates a class representation of an article to contain function
                 return lwarn(f"Warning: Attempted to move a page in a space other than our own while in development mode ({self.Article})")
             reason += " [INDEV]"
         if not SUBMITEDITS:
-            return lwarn(f"Not moving {self.StrippedArticle} to {newPage} as SUBMITEDITS is set to False")
+            return lwarn(f"Not moving {self.ParsedArticle} to {newPage} as SUBMITEDITS is set to False")
         isValid = MoveWikiPage(self,newPage,reason,leaveRedirect)
         if isValid:
             result = CreateFormRequest(enwiki+"w/index.php?title=Special:MovePage&action=submit",
-                {"wpNewTitleNs":namespaceID,"wpNewTitleMain":newPage,"wpReason":reason,"wpOldTitle":self.StrippedArticle,"wpEditToken":GetTokenForType("csrf"),"wpLeaveRedirect":leaveRedirect}
+                {"wpNewTitleNs":namespaceID,"wpNewTitleMain":newPage,"wpReason":reason,"wpOldTitle":self.ParsedArticle,"wpEditToken":GetTokenForType("csrf"),"wpLeaveRedirect":leaveRedirect}
             )
             return result
 

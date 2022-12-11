@@ -5,7 +5,7 @@ archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III
 def DetermineBadMove(article):
     global unsafeCases
     #Attempts to determine if pages from before weren't moved under the new name
-    currentLocation = urllib.parse.unquote(article.StrippedArticle.replace("_"," "))
+    currentLocation = article.ParsedArticle
     pagehistory = article.GetHistory(8)
     for revision in pagehistory:
         wasMoved,From,To = revision.IsMove()
@@ -52,7 +52,7 @@ def CheckArchiveLocations(page):
         lalert(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
         return
     content = article.GetRawContent()
-    currentLocation = urllib.parse.unquote(page.replace("_"," "))
+    currentLocation = article.ParsedArticle
     extraNote = ""
     for template in article.GetTemplates(): #Will only fix the first template occurance, and not any more
         if archiveTemplates.search(template.Template):
