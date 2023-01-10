@@ -6,8 +6,19 @@ def DetermineBadMove(article):
     global unsafeCases
     #Attempts to determine if pages from before weren't moved under the new name
     currentLocation = article.ParsedArticle
-    pagehistory = article.GetHistory(8)
-    for revision in pagehistory:
+    recentMoves = 0
+
+    #Avoid editing if the page has received a mass amount of recent moves
+    for revision in article.GetHistory(30):
+        wasMoved,From,To = revision.IsMove()
+        if wasMoved and (datetime.datetime.now() - revision.Date).seconds < 86400*21 #3 weeks
+            recentMoves += 1
+    if recentMoves >= 3:
+        unsafeCases[currentLocation] = f"Page could be undergoing a move war ({recentMoves} recent moves), not participating"
+        return
+
+    #Otherwise, scan the history
+    for revision in article.GetHistory(6):
         wasMoved,From,To = revision.IsMove()
         if wasMoved:
             verbose("Archive Fix",f"Examining the move from {revision.DateText} by {revision.User}")
