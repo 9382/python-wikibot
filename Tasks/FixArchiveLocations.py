@@ -22,37 +22,38 @@ def DetermineBadMove(article):
         wasMoved,From,To = revision.IsMove()
         if wasMoved:
             verbose("Archive Fix",f"Examining the move from {revision.DateText} by {revision.User}")
-            if (datetime.datetime.now() - revision.Date).total_seconds() < 60*60*6:
+            prevPage = Article(From)
+            if not prevPage.exists():
+                lwarn("[FixArchiveLocation] Previous page doesn't exist, that isn't right")
+                unsafeCases[currentLocation] = "Origin page of the move doesn't exist"
+            #At this point, we should be happy enough to go ahead and move pages
+            subpages = prevPage.GetSubpages()
+            if len(subpages) == 0:
+                unsafeCases[currentLocation] = "Couldn't find any pages to move"
+                return
+            articleSubpages = []
+            for subpage in subpages:
+                articleSubpages.append(Article(subpage)) #Avoid double-grabbing
+            #Verify all subpages are movable within reason
+            for subpage in articleSubpages:
+                if not subpage.StrippedArticle.startswith(prevPage.StrippedArticle+"/Archive"):
+                    #If the page is not an archive, to avoid the "A/B/Subpage listed under A" situation, ensure the page doesnt have a non-talk version
+                    if subpage.GetLinkedPage().exists():
+                        unsafeCases[currentLocation] = "Some subpages didn't meet the automove criteria"
+                        return
+            #All cool, go ahead and move (just make sure it happened a bit ago)
+            if (datetime.datetime.now() - revision.Date).total_seconds() < 3600*6: #6 hours
                 log("[FixArchiveLocation] Move was too recent, avoiding fixing it just yet")
-                #unsafeCases[currentLocation] = "Move was too recent, not fixing it yet..." #Dont alert help page just yet
+                #unsafeCases[currentLocation] = "Move was too recent, not fixing it yet" #Dont alert help page just yet
+                return
             else:
-                prevPage = Article(From)
-                if not prevPage.exists():
-                    lwarn("[FixArchiveLocation] Previous page doesn't exist, that isn't right")
-                    unsafeCases[currentLocation] = "Origin page of the move doesn't exist"
-                #At this point, we should be happy enough to go ahead and move pages
-                subpages = prevPage.GetSubpages()
-                if len(subpages) == 0:
-                    unsafeCases[currentLocation] = "Couldn't find any pages to move"
-                    return
-                articleSubpages = []
-                for subpage in subpages:
-                    articleSubpages.append(Article(subpage)) #Avoid double-grabbing
-                #Verify all subpages are movable within reason
-                for subpage in articleSubpages:
-                    if not subpage.StrippedArticle.startswith(prevPage.StrippedArticle+"/Archive"):
-                        #If the page is not an archive, to avoid the "A/B/Subpage listed under A" situation, ensure the page doesnt have a non-talk version
-                        if subpage.GetLinkedPage().exists():
-                            unsafeCases[currentLocation] = "Some subpages didn't meet the automove criteria"
-                            return
-                #All cool, go ahead and move
                 for subpage in articleSubpages:
                     subpage.MoveTo(
                         currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
                         "Re-locating talkpage archive under new page title"
                     ) #Move to new page with subpage suffix kept
                 return len(articleSubpages)
-            return #Only checks the most recent move, and no further
+            #Only checks the most recent move, and no further
     unsafeCases[currentLocation] = "No recent enough page moves found"
 
 def CheckArchiveLocations(page):
