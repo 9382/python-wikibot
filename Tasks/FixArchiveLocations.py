@@ -11,7 +11,7 @@ def DetermineBadMove(article):
     #Avoid editing if the page has received a mass amount of recent moves
     for revision in article.GetHistory(30):
         wasMoved,From,To = revision.IsMove()
-        if wasMoved and (datetime.datetime.now() - revision.Date).seconds < 86400*21 #3 weeks
+        if wasMoved and (datetime.datetime.now() - revision.Date).seconds < 86400*21: #3 weeks
             recentMoves += 1
     if recentMoves >= 3:
         unsafeCases[currentLocation] = f"Page could be undergoing a move war ({recentMoves} recent moves), not participating"
