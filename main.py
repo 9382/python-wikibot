@@ -454,7 +454,6 @@ class Article: #Creates a class representation of an article to contain function
 
 def IterateCategoryPages(category, torun):
     #Iterates all wikilinks of a category, even if multi-paged
-    #Note: If the page scanning is successful, make sure to return True, or else this wont know
     CheckIfStopped()
     catpage = Article(category)
     if not catpage.exists:
