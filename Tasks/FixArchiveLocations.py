@@ -125,15 +125,19 @@ while True:
     if curHour != prevHour:
         prevHour = curHour
         log("[FixArchiveLocation] Beginning cycle")
-        IterateCategory("Category:Pages where archive parameter is not a subpage", CheckArchiveLocations)
-        log("[FixArchiveLocation] Finished cycle")
-        if len(unsafeCases) == 0:
-            Article(f"User:{username}/helpme/Task2").edit("No problems", "[Task 2] No problems")
+        try:
+            IterateCategory("Category:Pages where archive parameter is not a subpage", CheckArchiveLocations)
+        except Exception as exc:
+            lerror(f"[FixArchiveLocation] Encountered a problem while trying to iterate the category: {traceback.format_exc()}")
         else:
-            problematicList = ""
-            for page, reason in unsafeCases.items():
-                problematicList += f"\n* [[:{page}]] - {reason}"
-            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}", f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
+            lsucc("[FixArchiveLocation] Finished cycle")
+            if len(unsafeCases) == 0:
+                Article(f"User:{username}/helpme/Task2").edit("No problems", "[Task 2] No problems")
+            else:
+                problematicList = ""
+                for page, reason in unsafeCases.items():
+                    problematicList += f"\n* [[:{page}]] - {reason}"
+                Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}", f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
         unsafeCases.clear()
     else:
         time.sleep(1)
