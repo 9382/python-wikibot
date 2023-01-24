@@ -33,5 +33,5 @@ def MainTester(page):
         print("Content:",page.GetContent())
 
 print("GOING")
-IterateCategoryPages("Category:Pages where archive parameter is not a subpage",MainTester)
+IterateCategory("Category:Pages where archive parameter is not a subpage",MainTester)
 print("AND HES GONE")

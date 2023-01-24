@@ -2,15 +2,15 @@
 
 unsafeCases = {}
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
-def DetermineBadMove(article):
+def DetermineBadMove(page):
     global unsafeCases
     #Attempts to determine if pages from before weren't moved under the new name
-    currentLocation = article.ParsedArticle
+    currentLocation = page.Title
     recentMoves = 0
 
     #Avoid editing if the page has received a mass amount of recent moves
-    for revision in article.GetHistory(30):
-        wasMoved,From,To = revision.IsMove()
+    for revision in page.GetHistory(30):
+        wasMoved, From, To = revision.IsMove()
         if wasMoved and (datetime.datetime.now() - revision.Date).seconds < 86400*21: #3 weeks
             recentMoves += 1
     if recentMoves >= 3:
@@ -18,12 +18,13 @@ def DetermineBadMove(article):
         return
 
     #Otherwise, scan the history
-    for revision in article.GetHistory(6):
-        wasMoved,From,To = revision.IsMove()
+    #The script checks only the most recent move, and no further
+    for revision in page.GetHistory(10):
+        wasMoved, From, To = revision.IsMove()
         if wasMoved:
-            verbose("Archive Fix",f"Examining the move from {revision.DateText} by {revision.User}")
+            verbose("Archive Fix", f"Examining the move from {revision.Timestamp} by {revision.User}")
             prevPage = Article(From)
-            if not prevPage.exists():
+            if not prevPage.exists:
                 lwarn("[FixArchiveLocation] Previous page doesn't exist, that isn't right")
                 unsafeCases[currentLocation] = "Origin page of the move doesn't exist"
             #At this point, we should be happy enough to go ahead and move pages
@@ -36,77 +37,72 @@ def DetermineBadMove(article):
                 articleSubpages.append(Article(subpage)) #Avoid double-grabbing
             #Verify all subpages are movable within reason
             for subpage in articleSubpages:
-                if not subpage.StrippedArticle.startswith(prevPage.StrippedArticle+"/Archive"):
+                if not subpage.Title.startswith(prevPage.Title+"/Archive"):
                     #If the page is not an archive, to avoid the "A/B/Subpage listed under A" situation, ensure the page doesnt have a non-talk version
-                    if subpage.GetLinkedPage().exists():
+                    if subpage.GetLinkedPage().exists:
                         unsafeCases[currentLocation] = "Some subpages didn't meet the automove criteria"
                         return
             #All cool, go ahead and move (just make sure it happened a bit ago)
-            if (datetime.datetime.now() - revision.Date).total_seconds() < 3600*6: #6 hours
+            if (datetime.datetime.now() - revision.Date).seconds < 3600*6: #6 hours
                 log("[FixArchiveLocation] Move was too recent, avoiding fixing it just yet")
                 #unsafeCases[currentLocation] = "Move was too recent, not fixing it yet" #Dont alert help page just yet
                 return
             else:
                 for subpage in articleSubpages:
                     subpage.MoveTo(
-                        currentLocation+subpage.StrippedArticle[len(prevPage.StrippedArticle):],
-                        "Re-locating talkpage archive under new page title"
+                        currentLocation+subpage.Title[len(prevPage.Title):],
+                        "Re-locating subpage under new page title"
                     ) #Move to new page with subpage suffix kept
                 return len(articleSubpages)
-            #Only checks the most recent move, and no further
     unsafeCases[currentLocation] = "No recent enough page moves found"
 
 def CheckArchiveLocations(page):
     global unsafeCases
-    article = Article(page)
-    if not article.exists():
-        #No idea how this would happen since its from a category, but oh well
-        lalert(f"[FixArchiveLocation] Warning: {page} doesn't exist despite being from a category search")
-        return
-    content = article.GetRawContent()
-    currentLocation = article.ParsedArticle
+    content = page.GetContent()
+    currentLocation = page.Title
     extraNote = ""
-    for template in article.GetTemplates(): #Will only fix the first template occurance, and not any more
+    for template in page.GetTemplates(): #Will only fix the first template occurance, and not any more
         if archiveTemplates.search(template.Template):
             if "archive" in template.Args and not "key" in template.Args:
                 archiveLocation = template.Args["archive"]
                 #Attempt to fix the archive location, as well as cleaning up any issues left behind
                 if not archiveLocation.startswith(currentLocation+"/"): #Not a subpage
-                    verbose("Archive Fix",f"{page} currently has {archiveLocation}, but we should have something with {currentLocation}")
+                    verbose("Archive Fix", f"{page} currently has {archiveLocation}, but we should have something with {currentLocation}")
                     #Most common case: Result of a page move, no GIGO problems
                     existingArchive = regex.compile("(?:/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee] %\(counter\)d)").search(archiveLocation) #For simplicity, only deal with %(counter)d
                     if existingArchive:
                         wantedLocation = existingArchive.group()
-                        verbose("Archive Fix",f"Attempting to preserve {wantedLocation}")
+                        verbose("Archive Fix", f"Attempting to preserve {wantedLocation}")
                         if wantedLocation[0] == "/": #Stupid but eh
                             newArchive = currentLocation+wantedLocation
                         else:
                             newArchive = currentLocation+"/"+wantedLocation
 
                         #Verify this archive is valid by checking if it exists
-                        archivePage = Article(newArchive.replace(r"%(counter)d","1"))
-                        if not archivePage.exists() or archivePage.IsRedirect():
+                        archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
+                        if not archivePage.exists or archivePage.IsRedirect:
                             #At this point, we attempt to move pages from the old name, in case the mover just happened to forget
                             lwarn(f"[FixArchiveLocation] {currentLocation} failed safety check (Missing expected archives), checking previous pages")
-                            wasFixed = DetermineBadMove(article)
-                            if wasFixed:
-                                archivePage = Article(newArchive.replace(r"%(counter)d","1"))
-                                if archivePage.exists() and not archivePage.IsRedirect():
+                            wasFixed = DetermineBadMove(page)
+                            if wasFixed: #Final confirmation that the fix worked
+                                archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
+                                if archivePage.exists and not archivePage.IsRedirect:
                                     lsucc("[FixArchiveLocation] Fixing archive location now that subpages have been moved")
-                                    template.ChangeKeyData("archive",newArchive)
-                                    content = content.replace(template.Original,template.Text)
+                                    template.ChangeKeyData("archive", newArchive)
+                                    content = content.replace(template.Original, template.Text)
                                     if wasFixed > 1:
                                         extraNote = f"; {wasFixed} subpages moved"
                                     elif wasFixed == 1:
                                         extraNote = f"; {wasFixed} subpage moved"
                                 else:
-                                    lwarn("[FixArchiveLocation] We moved some subpages yet it seems broken still?")
+                                    lalert("[FixArchiveLocation] We moved some subpages yet it seems broken still?")
                                     unsafeCases[currentLocation] = "Subpages moved, but can't confirm fix"
                             break
+
                         else: #Archive exists just fine
-                            verbose("Archive Fix","Safety test has been passed")
-                            template.ChangeKeyData("archive",newArchive)
-                            content = content.replace(template.Original,template.Text)
+                            verbose("Archive Fix", "Safety test has been passed")
+                            template.ChangeKeyData("archive", newArchive)
+                            content = content.replace(template.Original, template.Text)
                             break
                     else: #Regex did not match
                         lalert(f"[FixArchiveLocation] Couldn't find recognised archive for {page}")
@@ -119,28 +115,25 @@ def CheckArchiveLocations(page):
             elif not "archive" in template.Args: #No archive key
                 lwarn(f"[FixArchiveLocation] {page}'s template doesn't have an archive key")
                 unsafeCases[currentLocation] = "No archive key present"
+    if content != page.GetContent():
+        page.edit(content, f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])", minorEdit=True)
 
-    if content != article.RawContent:
-        article.edit(content,f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])",minorEdit=True)
-    return True
-
-# CheckArchiveLocations(f"User talk:{username}/sandbox")
-looptime = 3600 #1 hour
-curtime = time.time()-looptime
+# CheckArchiveLocations(Article(f"User:{username}/encoded–title"))
+prevHour = datetime.datetime.now().hour-1 #Hourly checks
 while True:
-    if curtime + looptime < time.time():
-        print() #testing
+    curHour = datetime.datetime.now().hour
+    if curHour != prevHour:
+        prevHour = curHour
         log("[FixArchiveLocation] Beginning cycle")
-        curtime = curtime + looptime
-        IterateCategory("Category:Pages where archive parameter is not a subpage",CheckArchiveLocations)
-        log(f"[FixArchiveLocation] Finished cycle in {time.time()-curtime} seconds. Next cycle will occur in {curtime+looptime-time.time()} seconds")
+        IterateCategory("Category:Pages where archive parameter is not a subpage", CheckArchiveLocations)
+        log("[FixArchiveLocation] Finished cycle")
         if len(unsafeCases) == 0:
-            Article(f"User:{username}/helpme/Task2").edit("No problems\n","[Task 2] No problems")
+            Article(f"User:{username}/helpme/Task2").edit("No problems", "[Task 2] No problems")
         else:
             problematicList = ""
-            for page,reason in unsafeCases.items():
+            for page, reason in unsafeCases.items():
                 problematicList += f"\n* [[:{page}]] - {reason}"
-            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}\n",f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
+            Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}", f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
         unsafeCases.clear()
     else:
         time.sleep(1)

@@ -323,7 +323,7 @@ class Article: #Creates a class representation of an article to contain function
             editSummary += ") (INDEV"
         if not SUBMITEDITS:
             #open(urllib.parse.quote(article).replace("/", "slash")+".txt", "w").write(newContent)
-            return print(f"Not submitting edit to {self} with summary '{editSummary}' as SUBMITEDITS is set to False")
+            return lwarn(f"[Article] Not submitting edit to {self} with summary '{editSummary}' as SUBMITEDITS is set to False")
         #All of our customary checks are done, now we actually start trying to edit the page
         CheckActionCount()
         log(f"Making edits to {self}:\n    {editSummary}")
@@ -455,7 +455,7 @@ class Article: #Creates a class representation of an article to contain function
                             return False
                 log("[Article] Exclusion check has managed to not hit a return, which is very odd")
 
-def IterateCategoryPages(category, torun):
+def IterateCategory(category, torun):
     #Iterates all wikilinks of a category, even if multi-paged
     CheckIfStopped()
     catpage = Article(category)
