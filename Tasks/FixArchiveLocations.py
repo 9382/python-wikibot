@@ -119,7 +119,7 @@ def CheckArchiveLocations(page):
         page.edit(content, f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])", minorEdit=True)
 
 # CheckArchiveLocations(Article(f"User:{username}/encoded–title"))
-prevHour = datetime.datetime.now().hour-1 #Hourly checks
+prevHour = datetime.datetime.now().hour #Hourly checks
 while True:
     curHour = datetime.datetime.now().hour
     if curHour != prevHour:
