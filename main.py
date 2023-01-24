@@ -225,8 +225,8 @@ class Revision: #For getting the history of pages
         self.ID = data["revid"]
         self.ParentID = data["parentid"]
         self.User = data["user"]
-        self.Timestamp = data["timestamp"][:-1] #Strip the ending Z
-        self.Datetime = datetime.datetime.fromisoformat(self.Timestamp)
+        self.Timestamp = data["timestamp"][:-1] #Strip the ending Z for datetime
+        self.Date = datetime.datetime.fromisoformat(self.Timestamp)
         self.Comment = data["comment"]
         self.Size = data["size"]
         if type(diff) == int:
@@ -267,6 +267,9 @@ class Article: #Creates a class representation of an article to contain function
             identifier = urllib.parse.quote(identifier.replace("_", " "))
             searchType = "titles"
         elif type(identifier) == int:
+            searchType = "pageids"
+        elif type(identifier) == dict and "pageid" in identifier:
+            identifier = identifier["pageid"]
             searchType = "pageids"
         else:
             raise Exception(f"Invalid identifier in Article '{identifier}'")
@@ -320,7 +323,7 @@ class Article: #Creates a class representation of an article to contain function
             editSummary += ") (INDEV"
         if not SUBMITEDITS:
             #open(urllib.parse.quote(article).replace("/", "slash")+".txt", "w").write(newContent)
-            return print(f"Not submitting changes to {self} as SUBMITEDITS is set to False")
+            return print(f"Not submitting edit to {self} with summary '{editSummary}' as SUBMITEDITS is set to False")
         #All of our customary checks are done, now we actually start trying to edit the page
         CheckActionCount()
         log(f"Making edits to {self}:\n    {editSummary}")
@@ -349,7 +352,7 @@ class Article: #Creates a class representation of an article to contain function
                 return lwarn(f"[Article] Attempted to move a page in a space other than our own while in development mode ({self})")
             reason += ") (INDEV"
         if not SUBMITEDITS:
-            return lwarn(f"[Article] Not moving {self} to {newPage} as SUBMITEDITS is set to False")
+            return lwarn(f"[Article] Not moving {self} to {newPage} with summary '{reason}' as SUBMITEDITS is set to False")
         #All our customary checks are done, begin the process of actually moving
         CheckActionCount()
         log(f"Moving {self} to {newPage}{leaveRedirect==False and ' (Redirect supressed)' or ''}:\n    {reason}")
@@ -374,7 +377,7 @@ class Article: #Creates a class representation of an article to contain function
         if not self.exists:
             return []
         templates = []
-        textToScan = self.Content
+        textToScan = self.GetContent()
         while True:
             nextTemplate = textToScan.find("{{")
             if nextTemplate == -1:
