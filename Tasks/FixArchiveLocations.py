@@ -11,7 +11,7 @@ def DetermineBadMove(page):
     #Avoid editing if the page has received a mass amount of recent moves
     for revision in page.GetHistory(30):
         wasMoved, From, To = revision.IsMove()
-        if wasMoved and (datetime.datetime.now() - revision.Date).seconds < 86400*21: #3 weeks
+        if wasMoved and (datetime.datetime.now() - revision.Date).total_seconds() < 86400*21: #3 weeks
             recentMoves += 1
     if recentMoves >= 3:
         unsafeCases[currentLocation] = f"Page could be undergoing a move war ({recentMoves} recent moves), not participating"
@@ -43,7 +43,7 @@ def DetermineBadMove(page):
                         unsafeCases[currentLocation] = "Some subpages didn't meet the automove criteria"
                         return
             #All cool, go ahead and move (just make sure it happened a bit ago)
-            if (datetime.datetime.now() - revision.Date).seconds < 3600*6: #6 hours
+            if (datetime.datetime.now() - revision.Date).total_seconds() < 3600*6: #6 hours
                 log("[FixArchiveLocation] Move was too recent, avoiding fixing it just yet")
                 #unsafeCases[currentLocation] = "Move was too recent, not fixing it yet" #Dont alert help page just yet
                 return
