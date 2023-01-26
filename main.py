@@ -262,7 +262,6 @@ def CheckActionCount():
 bracketbalancereg = regex.compile('{{|}}') #For template processing
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
     def __init__(self, identifier):
-        CheckIfStopped()
         if type(identifier) == str:
             identifier = urllib.parse.quote(identifier.replace("_", " "))
             searchType = "titles"
@@ -507,7 +506,7 @@ for file, contents in execList.items():
         lerror(f"[Tasks] Task {file} loading error -> {exc}")
 lsucc("Finished loading tasks")
 while True:
-    time.sleep(60)
+    time.sleep(30)
     tasks = threading.active_count()
     # log(f"Active task count: {tasks-1}")
     if tasks == 1:
