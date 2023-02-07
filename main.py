@@ -171,13 +171,10 @@ class Template: #Parses a template and returns a class object representing it
     def __init__(self, templateText):
         if type(templateText) != str or templateText[:2] != "{{" or templateText[-2:] != "}}":
             raise Exception(f"The text '{templateText}' is not a valid template")
-        self.Original = templateText #DO NOT EDIT THIS
+        self.Original = templateText
         self.Text = templateText
         templateArgs = templateText[2:-2].split("|")
         self.Template = templateArgs[0].strip()
-        # print(f"Processing temmplate {self.Template}...")
-        if len(self.Text) > 1500:
-            verbose("Template", f"{self.Template} has a total length of {len(self.Text)}, which is larger than what is normally expected")
         args = {}
         for arg in templateArgs:
             splitarg = arg.split("=")
@@ -197,7 +194,7 @@ class Template: #Parses a template and returns a class object representing it
     #Simply use the below functions, and then ask for self.Text for the new representation to use
     #TODO: Re-code the below, because its bloody stupid and has problems (we use regex?? why not just store whitespace seperately???)
     def ChangeKey(self, key, newkey): #Replaces one key with another, retaining the original data
-        #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX.
+        #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEXs
         if type(key) == int or key.isnumeric():
             verbose("Template", f"CK was told to change {key} to {newkey} in {self.Template} despite it being a numerical index")
         if not key in self.Args:
@@ -208,7 +205,7 @@ class Template: #Parses a template and returns a class object representing it
         keytext = keylocation.group()
         self.Text = SubstituteIntoString(self.Text, keytext.replace(key, newkey), *keylocation.span())
     def ChangeKeyData(self, key, newdata): #Changes the contents of the key
-        #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX.
+        #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX
         if type(key) == int or key.isnumeric():
             verbose("Template", f"CKD was told to change {key} to {newkey} in {self.Template} despite it being a numerical index")
         if not key in self.Args:
