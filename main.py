@@ -81,7 +81,11 @@ def request(method, page, **kwargs):
     #Central request handler, used for automatically sorting cookies
     #Currently unused in favour of requestapi, but kept just in case
     global cookies
+    startTime = time.perf_counter()
     request = getattr(requests, method)(enwiki+page, cookies=cookies, **kwargs)
+    timeTaken = time.perf_counter() - startTime
+    if timeTaken > 3:
+        lwarn(f"[request] Just took {timeTaken}s to complete a single request - are we running alright?")
     if "set-cookie" in request.headers:
         verbose("request", "Attempting to note down some new cookies")
         setcookies = request.headers["set-cookie"].split(", ")
