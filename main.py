@@ -228,13 +228,14 @@ class Revision: #For getting the history of pages
         self.User = data["user"]
         self.Timestamp = data["timestamp"][:-1] #Strip the ending Z for datetime
         self.Date = datetime.datetime.fromisoformat(self.Timestamp)
-        self.Comment = data["comment"]
+        self.Comment = ("commenthidden" in data and "< Comment hidden >") or data["comment"]
         self.Size = data["size"]
         if type(diff) == int:
             self.SizeChange = diff
         else:
             self.SizeChange = self.Size
         self.IsMinor = "minor" in data
+        self.IsIP = "anon" in data
     def IsMove(self):
         #Returns wasMoved, From, To
         #This will ignore move revisions that created a page by placing redirect categories (the page left behind)
