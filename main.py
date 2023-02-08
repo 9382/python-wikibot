@@ -51,7 +51,6 @@ for file in os.listdir("Tasks"):
             lerror(f"[Tasks] Task {file} import error -> {traceback.format_exc()}")
         else:
             try:
-                print(ImportedTask)
                 taskThread = threading.Thread(target=ImportedTask.__main__, name=file[:-3])
                 taskThread.start()
             except Exception as exc:
