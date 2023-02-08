@@ -1,37 +1,33 @@
 #Demonstration and testing stuff
 
-# test = Article(f"User:{username}")
-# print(test,test.exists,test.Namespace,test.Title)
+from wikitools import *
 
-# test = Article(f"User:{username}/–+-'\"&?")
-# print(test,test.exists,test.Namespace,test.Title)
+""" General tests
+test = Article(f"User:{username}")
+print(test,test.exists,test.Namespace,test.Title)
 
-# print("GET CONTENT AND EDIT")
-# content = test.GetContent()
-# test.edit(content+"\nTest edit","Testing")
+test = Article(f"User:{username}/–+-'\"&?")
+print(test,test.exists,test.Namespace,test.Title)
 
-# print("GET HISTORY")
-# for x in test.GetHistory(6):
-#     # print(x.Comment)
-#     print(x.IsMove())
+print("GET CONTENT AND EDIT")
+content = test.GetContent()
+test.edit(content+"\nTest edit","Testing")
 
-# print("GET SUBPAGES")
-# print(test.GetSubpages())
+print("GET HISTORY")
+for x in test.GetHistory(6):
+    # print(x.Comment)
+    print(x.IsMove())
 
-# print("Move page?")
-# test.MoveTo(f"User:{username}/–+- A '\"&?","Page move test")
+print("GET SUBPAGES")
+print(test.GetSubpages())
 
-title = f"User:{username}/–+-'\"&?"
+print("Move page?")
+test.MoveTo(f"User:{username}/–+- A '\"&?","Page move test")
+"""
 
-def MainTester(page):
-    print(page,page.exists)
-    print(page.GetSubpages(),page.GetLinkedPage())
+def __main__():
+    print(username, userid)
+    title = f"Talk:Kabir"
 
-    if page.Title == title:
-        print("title!")
-        print(page)
-        print("Content:",page.GetContent())
-
-print("GOING")
-IterateCategory("Category:Pages where archive parameter is not a subpage",MainTester)
-print("AND HES GONE")
+    r = Article(title).GetHistory(50)
+    print(r)

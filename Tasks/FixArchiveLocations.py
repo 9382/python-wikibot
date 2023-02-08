@@ -1,5 +1,10 @@
 #This task fixes the archive parameter for the {{User:MiszaBot/config}} template as well as other small factors
 
+from wikitools import *
+import re as regex
+import datetime
+import time
+
 unsafeCases = {}
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
 def MarkUnsafe(title, reason):
@@ -120,26 +125,27 @@ def CheckArchiveLocations(page):
     if content != page.GetContent():
         page.edit(content, f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])", minorEdit=True)
 
-# CheckArchiveLocations(Article(f"User:{username}/encoded–title"))
-prevHour = datetime.datetime.now().hour #Hourly checks
-while True:
-    curHour = datetime.datetime.now().hour
-    if curHour != prevHour:
-        prevHour = curHour
-        log("[FixArchiveLocations] Beginning cycle")
-        try:
-            IterateCategory("Category:Pages where archive parameter is not a subpage", CheckArchiveLocations)
-        except Exception as exc:
-            lerror(f"[FixArchiveLocations] Encountered a problem while trying to iterate the category: {traceback.format_exc()}")
-        else:
-            log("[FixArchiveLocations] Finished cycle")
-            if len(unsafeCases) == 0:
-                Article(f"User:{username}/helpme/Task2").edit("No problems", "[Task 2] No problems")
+def __main__():
+    # CheckArchiveLocations(Article(f"User:{username}/encoded–title"))
+    prevHour = datetime.datetime.now().hour #Hourly checks
+    while True:
+        curHour = datetime.datetime.now().hour
+        if curHour != prevHour:
+            prevHour = curHour
+            log("[FixArchiveLocations] Beginning cycle")
+            try:
+                IterateCategory("Category:Pages where archive parameter is not a subpage", CheckArchiveLocations)
+            except Exception as exc:
+                lerror(f"[FixArchiveLocations] Encountered a problem while trying to iterate the category: {traceback.format_exc()}")
             else:
-                problematicList = ""
-                for page, reason in unsafeCases.items():
-                    problematicList += f"\n* [[:{page}]] - {reason}"
-                Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}", f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
-        unsafeCases.clear()
-    else:
-        time.sleep(1)
+                log("[FixArchiveLocations] Finished cycle")
+                if len(unsafeCases) == 0:
+                    Article(f"User:{username}/helpme/Task2").edit("No problems", "[Task 2] No problems")
+                else:
+                    problematicList = ""
+                    for page, reason in unsafeCases.items():
+                        problematicList += f"\n* [[:{page}]] - {reason}"
+                    Article(f"User:{username}/helpme/Task2").edit(f"Encountered some issues with archives on the following pages:{problematicList}", f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
+            unsafeCases.clear()
+        else:
+            time.sleep(1)
