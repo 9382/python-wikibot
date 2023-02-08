@@ -4,7 +4,8 @@
 __all__ = [
         "verbose", "log", "lerror", "lalert", "lwarn", "lsucc",
         "Article", "Template", "Revision", "IterateCategory",
-        "username", "userid", "AttemptLogin"
+        "username", "userid", "AttemptLogin",
+        "requestapi", "CreateAPIFormRequest"
 ]
 
 from dotenv import dotenv_values
