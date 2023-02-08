@@ -17,7 +17,7 @@ import os
 envvalues = dotenv_values()
 SUBMITEDITS = envvalues["SUBMITEDITS"].lower() == "true"
 INDEV = envvalues["INDEV"].lower() == "true"
-EnabledTasks = envvalues["TASKS"].lower().replace("; ", ";").split(";")
+EnabledTasks = envvalues["TASKS"].lower().replace(", ", ",").split(",")
 maxActionsPerMinute = int(envvalues["EDITSPERMIN"])
 maxEdits = int(envvalues["MAXEDITS"])
 
