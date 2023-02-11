@@ -73,7 +73,7 @@ def CheckArchiveLocations(page):
     extraNote = ""
     for template in page.GetTemplates(): #Will only fix the first template occurance, and not any more
         if archiveTemplates.search(template.Template):
-            if "archive" in template.Args and not "key" in template.Args:
+            if "archive" in template.Args and (not "key" in template.Args or template.Args["key"].strip() == ""):
                 archiveLocation = template.Args["archive"]
                 #Attempt to fix the archive location, as well as cleaning up any issues left behind
                 if not archiveLocation.startswith(currentLocation+"/"): #Not a subpage

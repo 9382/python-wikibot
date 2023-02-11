@@ -88,7 +88,7 @@ def request(method, page, **kwargs):
     startTime = time.perf_counter()
     request = getattr(requests, method)(enwiki+page, cookies=cookies, **kwargs)
     timeTaken = time.perf_counter() - startTime
-    if timeTaken > 3:
+    if timeTaken > 2.5:
         lwarn(f"[request] Just took {timeTaken}s to complete a single request - are we running alright?")
     if "set-cookie" in request.headers:
         verbose("request", "Attempting to note down some new cookies")
