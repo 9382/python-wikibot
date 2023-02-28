@@ -61,7 +61,7 @@ def DetermineBadMove(page):
                 for subpage in articleSubpages:
                     subpage.MoveTo(
                         currentLocation+subpage.Title[len(prevPage.Title):],
-                        "Re-locating subpage under new page title"
+                        "Relocating subpage under new page title"
                     ) #Move to new page with subpage suffix kept
                 return len(subpages)
 
