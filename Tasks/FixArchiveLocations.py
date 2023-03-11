@@ -54,7 +54,7 @@ def DetermineBadMove(page):
                     return MarkUnsafe(currentLocation, "Some subpages can't be moved")
 
             #All cool, go ahead and move (just make sure it happened a bit ago)
-            if (datetime.datetime.now() - revision.Date).total_seconds() < 3600*6: #6 hours
+            if (datetime.datetime.now() - revision.Date).total_seconds() < 3600*12: #12 hours
                 log("[FixArchiveLocations] Move was too recent, avoiding fixing it just yet")
                 return #Don't alert help page for this
             else:
