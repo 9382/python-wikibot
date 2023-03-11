@@ -16,7 +16,7 @@ def DetermineBadMove(page):
     currentLocation = page.Title
     recentMoves = 0
 
-    revisions = page.GetHistory(50)
+    revisions = page.GetHistory(200)
     #Avoid editing if the page has received a mass amount of recent moves
     for revision in revisions:
         wasMoved, From, To = revision.IsMove()
