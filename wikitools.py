@@ -486,10 +486,10 @@ def AttemptLogin(name, password):
     #TODO: Consider adapting botpass instead of straight logging to allow stricter control
     if loginAttempt["result"] != "Success":
         lerror(f"Failed to log-in as {name}. check the password and username are correct")
-        return False
+        return False, None
     else:
         username = loginAttempt["lgusername"]
         userid = loginAttempt["lguserid"]
         lsucc(f"Successfully logged in as {username} (ID {userid})")
-        return True
+        return True, username
 log("WikiTools has loaded")

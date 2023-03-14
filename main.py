@@ -13,9 +13,8 @@ from wikitools import *
 
 envvalues = dotenv_values()
 EnabledTasks = envvalues["TASKS"].lower().replace(", ", ",").split(",")
-username, password = dotenv_values()["USER"], dotenv_values()["PASS"]
 
-DidLogin = AttemptLogin(username, password)
+DidLogin, username = AttemptLogin(envvalues["USER"], envvalues["PASS"])
 if not DidLogin:
     print("Closing in 5 seconds...")
     time.sleep(5)
