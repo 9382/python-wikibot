@@ -81,6 +81,6 @@ while True:
             else:
                 activelyStopped = False
         else:
-            lwarm(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
+            lwarn(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
             activelyStopped = True
 input("Press enter to exit...")
