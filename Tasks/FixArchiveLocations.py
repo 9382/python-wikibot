@@ -2,6 +2,7 @@
 
 from wikitools import *
 import re as regex
+import traceback
 import datetime
 import time
 
