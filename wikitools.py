@@ -4,13 +4,14 @@
 __all__ = [
         "verbose", "log", "lerror", "lalert", "lwarn", "lsucc",
         "Article", "Template", "Revision", "IterateCategory",
-        "username", "userid", "AttemptLogin",
+        "username", "userid", "AttemptLogin", "SetStopped",
         "requestapi", "CreateAPIFormRequest"
 ]
 
 from dotenv import dotenv_values
 import urllib.parse
 import re as regex
+import threading
 import traceback
 import colorama
 import datetime
@@ -55,10 +56,11 @@ def safeWriteToFile(filename, content, mode="w", encoding="UTF-8"):
     return True, f"Successfully wrote to {filename}"
 def log(content, *, colour=""):
     #Manages the writing to a day-based log file for debugging
-    print(f"{colour}[Log {currentDate()[11:]}] {content}\033[0m")
-    success, result = safeWriteToFile(f"Logs/{currentDate()[:10]}.log", f"[{currentDate()[11:]}] {content}\n", "a")
+    prefixText = f"{currentDate()[11:]} - {threading.current_thread().name}"
+    print(f"{colour}[Log {prefixText}] {content}\033[0m")
+    success, result = safeWriteToFile(f"Logs/{currentDate()[:10]}.log", f"[{prefixText}] {content}\n", "a")
     if not success:
-        print(f"\033[41m\033[30m[Log {currentDate()[11:]}] Failed to write to log file: {result}\033[0m")
+        print(f"\033[41m\033[30m[Log {prefixText}] Failed to write to log file: {result}\033[0m")
     return success
 def lerror(content): #Black text, red background
     return log(content, colour="\033[41m\033[30m")
@@ -135,6 +137,10 @@ def CheckIfStopped():
         lsucc("Panic mode is no longer active. Exiting pause...")
         return True
     return False
+def SetStopped(state):
+    if state != activelyStopped:
+        log(f"Setting panic state to {state}")
+    activelyStopped = state
 
 namespaces = ["User", "Wikipedia", "WP", "File", "MediaWiki", "Template", "Help", "Category", "Portal", "Draft", "TimedText", "Module"] #Gadget( definition) is deprecated
 pseudoNamespaces = {"CAT":"Category", "H":"Help", "MOS":"Wikipedia", "WP":"Wikipedia", "WT":"Wikipedia talk",

@@ -71,15 +71,15 @@ while True:
         confirmStatus = requestapi("get", "action=query&assert=user")
     except Exception as exc:
         lerror(f"assert=user request had an error. Reason: {exc}")
-        activelyStopped = True
+        SetStopped(True)
     else:
         panic = Article(f"User:{username}/panic")
         if panic.exists:
             if panic.GetContent().strip().lower() == "true":
-                activelyStopped = True
+                SetStopped(True)
             else:
-                activelyStopped = False
+                SetStopped(False)
         else:
             lwarn(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
-            activelyStopped = True
+            SetStopped(True)
 input("Press enter to exit...")
