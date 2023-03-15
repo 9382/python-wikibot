@@ -138,6 +138,7 @@ def CheckIfStopped():
         return True
     return False
 def SetStopped(state):
+    global activelyStopped
     if state != activelyStopped:
         log(f"Setting panic state to {state}")
     activelyStopped = state
