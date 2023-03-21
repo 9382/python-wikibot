@@ -7,10 +7,10 @@ import datetime
 import time
 
 Config = WikiConfig(f"User:{username}/FixArchiveLocations/config.json", {
-    MoveWarLimit: 3,
-    MoveWarTimeLimit: 28,
-    MoveCheckTimeLimit: 7,
-    TimeUntilMoveAction: 12
+    "MoveWarLimit": 3,
+    "MoveWarTimeLimit": 28,
+    "MoveCheckTimeLimit": 7,
+    "TimeUntilMoveAction": 12
 })
 
 unsafeCases = {}
