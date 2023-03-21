@@ -6,6 +6,13 @@ import traceback
 import datetime
 import time
 
+Config = WikiConfig(f"User:{username}/FixArchiveLocations/config.json", {
+    MoveWarLimit: 3,
+    MoveWarTimeLimit: 28,
+    MoveCheckTimeLimit: 7,
+    TimeUntilMoveAction: 12
+})
+
 unsafeCases = {}
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
 def MarkUnsafe(title, reason):
@@ -21,16 +28,16 @@ def DetermineBadMove(page):
     #Avoid editing if the page has received a mass amount of recent moves
     for revision in revisions:
         wasMoved, From, To = revision.IsMove()
-        if wasMoved and (datetime.datetime.now() - revision.Date).total_seconds() < 86400*28: #4 weeks
+        if wasMoved and revision.Age < 86400*Config.get("MoveWarTimeLimit"):
             recentMoves += 1
-    if recentMoves >= 3:
+    if recentMoves >= Config.get("MoveWarLimit"):
         return MarkUnsafe(currentLocation, f"Page could be undergoing a move war ({recentMoves} recent moves), not participating")
 
     #Otherwise, scan the history
     #The script checks only the most recent move, and no further
     for revision in revisions:
         wasMoved, From, To = revision.IsMove()
-        if wasMoved and (datetime.datetime.now() - revision.Date).total_seconds() < 86400*7: #1 week:
+        if wasMoved and revision.Age < 86400*Config.get("MoveCheckTimeLimit"):
             log(f"Examining the move from {revision.Timestamp} by {revision.User}")
             prevPage = Article(From)
             if not prevPage.exists:
@@ -59,7 +66,7 @@ def DetermineBadMove(page):
                     return MarkUnsafe(currentLocation, "Some subpages can't be moved")
 
             #All cool, go ahead and move (just make sure it happened a bit ago)
-            if (datetime.datetime.now() - revision.Date).total_seconds() < 3600*12: #12 hours
+            if revision.Age < 3600*Config.get("TimeUntilMoveAction"):
                 log("Move was too recent, avoiding fixing it just yet")
                 return #Don't alert help page for this
             else:
@@ -138,6 +145,7 @@ def __main__():
         if curHour != prevHour:
             prevHour = curHour
             log("Beginning cycle")
+            Config.update()
             try:
                 IterateCategory("Category:Pages where archive parameter is not a subpage", CheckArchiveLocations)
             except Exception as exc:

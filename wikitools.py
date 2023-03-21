@@ -3,9 +3,9 @@
 
 __all__ = [
         "verbose", "log", "lerror", "lalert", "lwarn", "lsucc",
-        "Article", "Template", "Revision", "IterateCategory",
+        "Article", "Template", "Revision", "IterateCategory", "WikiConfig",
         "username", "userid", "AttemptLogin", "SetStopped",
-        "requestapi", "CreateAPIFormRequest"
+        "requestapi", "CreateAPIFormRequest" #Avoid using these directly unless required
 ]
 
 from dotenv import dotenv_values
@@ -17,6 +17,7 @@ import colorama
 import datetime
 import requests
 import random
+import json
 import time
 import os
 #For an explenation of the config options below, please see the .env-example file
@@ -239,6 +240,7 @@ class Revision: #For getting the history of pages
         self.User = data["user"]
         self.Timestamp = data["timestamp"][:-1] #Strip the ending Z for datetime
         self.Date = datetime.datetime.fromisoformat(self.Timestamp)
+        self.Age = (datetime.datetime.now() - self.Date).total_seconds()
         self.Comment = ("commenthidden" in data and "< Comment hidden >") or data["comment"]
         self.Size = data["size"]
         if type(diff) == int:
@@ -483,6 +485,31 @@ def IterateCategory(category, torun):
         for page in data["query"]["categorymembers"]:
             torun(Article(page["pageid"]))
         cmcontinue = "continue" in data and data["continue"]["cmcontinue"]
+
+class WikiConfig: #Handles the fetching of configs from on-wiki locations
+    def __init__(self, page, defaultConfig):
+        self.Page = page
+        self.Config = defaultConfig
+    def update(self):
+        Page = Article(self.Page)
+        if not Page.exists:
+            return lalert(f"[WikiConfig] Page {self.Page} doesn't exist")
+        else:
+            try:
+                NewConfig = json.loads(Page.GetContent())
+            except Exception as exc:
+                return lerror(f"[WikiConfig] Trouble parsing {self.Page}: {exc}")
+            else:
+                for key,data in NewConfig.items():
+                    value = data["Value"]
+                    if self.Config[key] != value:
+                        log(f"[WikiConfig] '{key}' in config {self.Page} was changed to '{value}'")
+                        self.Config[key] = value
+    def get(self, key):
+        if key in self.Config:
+            return self.Config[key]
+        return None
+
 
 username, userid = None, None
 def AttemptLogin(name, password):

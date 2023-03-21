@@ -27,4 +27,14 @@ def __main__():
 
     # print("Move page?")
     # test.MoveTo(f"User:{username}/–+- A '\"&?","Page move test")
+
+    print("WikiConfig test")
+    Config = WikiConfig(f"User:{username}/DevelopmentTests/config", {
+        "Value1": False,
+        "Value2": "Stringg",
+        "Value3": 2839
+    })
+    print("Config round 1", Config.get("Value1"), Config.get("Value2"), Config.get("Value3"), Config.get("Value4"))
+    Config.update()
+    print("Config round 2", Config.get("Value1"), Config.get("Value2"), Config.get("Value3"), Config.get("Value4"))
     """ """
