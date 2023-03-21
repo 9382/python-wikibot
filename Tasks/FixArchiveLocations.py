@@ -1,4 +1,4 @@
-#This task fixes the archive parameter for the {{User:MiszaBot/config}} template as well as other small factors
+#This task fixes the archive parameter for the {{User:MiszaBot/config}} template, as well as the position of left-behind subpages
 
 from wikitools import *
 import re as regex
@@ -10,7 +10,7 @@ unsafeCases = {}
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
 def MarkUnsafe(title, reason):
     global unsafeCases
-    lwarn(f"[FixArchiveLocations] Just placed {title} on the no-action list: {reason}")
+    lwarn(f"Just placed {title} on the no-action list: {reason}")
     unsafeCases[title] = reason
 def DetermineBadMove(page):
     #Attempts to determine if pages from before weren't moved under the new name
@@ -31,7 +31,7 @@ def DetermineBadMove(page):
     for revision in revisions:
         wasMoved, From, To = revision.IsMove()
         if wasMoved and (datetime.datetime.now() - revision.Date).total_seconds() < 86400*7: #1 week:
-            log(f"[FixArchiveLocations] Examining the move from {revision.Timestamp} by {revision.User}")
+            log(f"Examining the move from {revision.Timestamp} by {revision.User}")
             prevPage = Article(From)
             if not prevPage.exists:
                 return MarkUnsafe(currentLocation, "Origin page of the move doesn't exist")
@@ -42,7 +42,11 @@ def DetermineBadMove(page):
                 return MarkUnsafe(currentLocation, "Couldn't find any pages to move")
             articleSubpages = []
             for subpage in subpages:
-                articleSubpages.append(Article(subpage)) #Avoid double-grabbing
+                subpage = Article(subpage)
+                if not subpage.IsRedirect:
+                    articleSubpages.append(subpage) #Avoid double-grabbing
+            if len(articleSubpages) == 0:
+                return MarkUnsafe(currentLocation, "All of the pages under the previous title are redirects themselves..?")
 
             #Verify all subpages are movable within reason
             for subpage in articleSubpages:
@@ -56,7 +60,7 @@ def DetermineBadMove(page):
 
             #All cool, go ahead and move (just make sure it happened a bit ago)
             if (datetime.datetime.now() - revision.Date).total_seconds() < 3600*12: #12 hours
-                log("[FixArchiveLocations] Move was too recent, avoiding fixing it just yet")
+                log("Move was too recent, avoiding fixing it just yet")
                 return #Don't alert help page for this
             else:
                 for subpage in articleSubpages:
@@ -93,12 +97,12 @@ def CheckArchiveLocations(page):
                         archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
                         if not archivePage.exists or archivePage.IsRedirect:
                             #At this point, we attempt to move pages from the old name, in case the mover just happened to forget
-                            lwarn(f"[FixArchiveLocations] {currentLocation} failed safety check (Missing expected archives), checking previous pages")
+                            lwarn(f"{currentLocation} failed safety check (Missing expected archives), checking previous pages")
                             wasFixed = DetermineBadMove(page)
                             if wasFixed: #Final confirmation that the fix worked
                                 archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
                                 if archivePage.exists and not archivePage.IsRedirect:
-                                    lsucc("[FixArchiveLocations] Fixing archive location now that subpages have been moved")
+                                    lsucc("Fixing archive location now that subpages have been moved")
                                     template.ChangeKeyData("archive", newArchive)
                                     content = content.replace(template.Original, template.Text)
                                     if wasFixed > 1:
@@ -133,13 +137,13 @@ def __main__():
         curHour = datetime.datetime.now().hour
         if curHour != prevHour:
             prevHour = curHour
-            log("[FixArchiveLocations] Beginning cycle")
+            log("Beginning cycle")
             try:
                 IterateCategory("Category:Pages where archive parameter is not a subpage", CheckArchiveLocations)
             except Exception as exc:
-                lerror(f"[FixArchiveLocations] Encountered a problem while trying to iterate the category: {traceback.format_exc()}")
+                lerror(f"Encountered a problem while trying to iterate the category: {traceback.format_exc()}")
             else:
-                log("[FixArchiveLocations] Finished cycle")
+                log("Finished cycle")
                 if len(unsafeCases) == 0:
                     Article(f"User:{username}/helpme/Task2").edit("No problems", "[Task 2] No problems")
                 else:
