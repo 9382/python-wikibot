@@ -6,7 +6,7 @@ import traceback
 import datetime
 import time
 
-Config = WikiConfig(f"User:{username}/FixArchiveLocations/config.json", {
+Config = WikiConfig(f"User:{username}/FixArchiveLocations/config", {
     "MoveWarLimit": 3,
     "MoveWarTimeLimit": 28,
     "MoveCheckTimeLimit": 7,
