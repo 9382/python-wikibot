@@ -237,7 +237,7 @@ class Revision: #For getting the history of pages
     def __init__(self, data, diff=None):
         self.ID = data["revid"]
         self.ParentID = data["parentid"]
-        self.User = data["user"]
+        self.User = ("userhidden" in data and "< User hidden >") or data["user"]
         self.Timestamp = data["timestamp"][:-1] #Strip the ending Z for datetime
         self.Date = datetime.datetime.fromisoformat(self.Timestamp)
         self.Age = (datetime.datetime.now() - self.Date).total_seconds()
@@ -249,6 +249,7 @@ class Revision: #For getting the history of pages
             self.SizeChange = self.Size
         self.IsMinor = "minor" in data
         self.IsIP = "anon" in data
+        self.IsSuppressed = "suppressed" in data
     def IsMove(self):
         #Returns wasMoved, From, To
         #This will ignore move revisions that created a page by placing redirect categories (the page left behind)
