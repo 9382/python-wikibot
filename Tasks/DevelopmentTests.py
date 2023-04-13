@@ -6,6 +6,12 @@ def __main__():
     print("username", username, "userid", userid)
 
     """ General tests """
+    lsucc("Success")
+    log("Log")
+    lwarn("Warn")
+    lalert("Alert")
+    lerror("Error")
+
     test = Article(f"User:{username}")
     print(test,test.exists,test.Namespace,test.Title)
 
@@ -37,4 +43,13 @@ def __main__():
     print("Config round 1", Config.get("Value1"), Config.get("Value2"), Config.get("Value3"), Config.get("Value4"))
     Config.update()
     print("Config round 2", Config.get("Value1"), Config.get("Value2"), Config.get("Value3"), Config.get("Value4"))
+
+    try:
+        requestapi("get", "action=query&assert=invalid")
+    except Exception as exc:
+        print(type(exc), exc)
+        if type(exc) == APIException and exc.code == "badvalue":
+            lsucc("Exceptions are behaving as expected")
+        else:
+            lwarn("Exception didnt plan out how we intended it to")
     """ """

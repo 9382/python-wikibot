@@ -3,7 +3,7 @@
 
 __all__ = [
         "verbose", "log", "lerror", "lalert", "lwarn", "lsucc",
-        "Article", "Template", "Revision", "IterateCategory", "WikiConfig",
+        "Article", "Template", "Revision", "IterateCategory", "WikiConfig", "APIException",
         "username", "userid", "AttemptLogin", "SetStopped",
         "requestapi", "CreateAPIFormRequest" #Avoid using these directly unless required
 ]
@@ -81,7 +81,15 @@ if SUBMITEDITS:
     log("SUBMITEDITS is set to True. Edits will actually be made")
 else:
     log("SUBMITEDITS is set to False. Edits will not be requested, only simulated")
-username, password = dotenv_values()["USER"], dotenv_values()["PASS"]
+
+class APIException(Exception):
+    def __init__(self, message, code):
+        self.message = message
+        self.code = code
+    def __str__(self):
+        return f"{self.code}: {self.message}"
+
+username, userid = None, None
 enwiki = "https://en.wikipedia.org/"
 cookies = {}
 def request(method, page, **kwargs):
@@ -110,9 +118,8 @@ def requestapi(method, apimethod, **kwargs):
     data = apirequest.json()
     if "error" in data: #Request failed
         code,info = data["error"]["code"], data["error"]["info"]
-        errormessage = f"[requestapi] API Request failed to complete for query '{apimethod}' | {code} - {info}"
-        lerror(errormessage)
-        raise Exception(errormessage)
+        lerror(f"[requestapi] API Request failed to complete for query '{apimethod}' | {code} - {info}")
+        raise APIException(info, code)
     if "warnings" in data: #Request worked, though theres some issues
         for warntype,text in data["warnings"].items():
             lwarn(f"[requestapi] API Request {warntype} warning for query '{apimethod}' - {text['*']}")
@@ -287,7 +294,7 @@ class Article: #Creates a class representation of an article to contain function
             identifier = identifier["pageid"]
             searchType = "pageids"
         else:
-            raise Exception(f"Invalid identifier in Article '{identifier}'")
+            raise Exception(f"Invalid identifier input '{identifier}'")
         pageInfo = requestapi("get", f"action=query&prop=info&indexpageids=&intestactions=edit|move&{searchType}={identifier}")
         pageInfo = pageInfo["query"]["pages"][pageInfo["query"]["pageids"][0]] #Loooovely oneliner, ay?
         self.rawdata = pageInfo
@@ -446,6 +453,8 @@ class Article: #Creates a class representation of an article to contain function
         #If the bot is excluded from editing a page, this returns True
         if not self.exists:
             return False
+        if not username:
+            return True #Shouldn't reach this, but just in case
         for template in self.GetTemplates():
             if template.Template.lower() == "nobots": #We just arent allowed here
                 log("[Article] nobots presence found")
@@ -511,8 +520,6 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
             return self.Config[key]
         return None
 
-
-username, userid = None, None
 def AttemptLogin(name, password):
     global username, userid
     log(f"Attempting to log-in as {name}")
