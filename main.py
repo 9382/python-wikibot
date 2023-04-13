@@ -70,8 +70,18 @@ while True:
     try:
         confirmStatus = requestapi("get", "action=query&assert=user")
     except Exception as exc:
-        lerror(f"assert=user request had an error. Reason: {exc}")
-        SetStopped(True)
+        if type(exc) == APIException and exc.code == "assertuserfailed":
+            lerror(f"assert=user has failed as we appear to be logged out. Re-requesting login...")
+            SetStopped(True)
+            DidLogin, username = AttemptLogin(envvalues["USER"], envvalues["PASS"])
+            if not DidLogin:
+                lerror("Failed to log back in.")
+            else:
+                lsucc("Managed to log back in. Resuming tasks...")
+                SetStopped(False)
+        else:
+            lerror(f"assert=user request had an error. Reason: {exc}")
+            SetStopped(True)
     else:
         panic = Article(f"User:{username}/panic")
         if panic.exists:
