@@ -4,7 +4,7 @@
 __all__ = [
         "verbose", "log", "lerror", "lalert", "lwarn", "lsucc",
         "Article", "Template", "Revision", "IterateCategory", "WikiConfig", "APIException",
-        "username", "userid", "AttemptLogin", "SetStopped",
+        "username", "userid", "AttemptLogin", "CheckIfStopped", "HaltIfStopped", "SetStopped",
         "requestapi", "CreateAPIFormRequest" #Avoid using these directly unless required
 ]
 
@@ -138,6 +138,8 @@ def CreateAPIFormRequest(location, data):
     return requestapi("post", location, data=finaltext.encode("utf-8"), headers={"Content-Type":f"multipart/form-data; boundary={boundary[2:]}"})
 
 def CheckIfStopped():
+    return activelyStopped
+def HaltIfStopped():
     if activelyStopped:
         lalert("The thread has been paused from continuing while panic mode is active. Pausing thread...")
         while activelyStopped:
@@ -330,7 +332,7 @@ class Article: #Creates a class representation of an article to contain function
         return self.Content
     def edit(self, newContent, editSummary, *, minorEdit=False, allowPageCreation=True, bypassExclusion=False, markAsBot=True):
         #Edit a page's content, replacing it with newContent
-        if CheckIfStopped():
+        if HaltIfStopped():
             return
         if not self.exists and not allowPageCreation:
             return lwarn(f"[Article] Refusing to edit article that doesnt exist ({self})")
@@ -363,7 +365,7 @@ class Article: #Creates a class representation of an article to contain function
     def MoveTo(self, newPage, reason, *, leaveRedirect=True, bypassExclusion=False):
         #Move the page from its current location to a new one
         #Avoid supressing redirects unless necessary
-        if CheckIfStopped():
+        if HaltIfStopped():
             return
         if not bypassExclusion and self.HasExclusion():
             #Its been requested we stay away, so we will
@@ -481,7 +483,8 @@ class Article: #Creates a class representation of an article to contain function
 
 def IterateCategory(category, torun):
     #Iterates all wikilinks of a category, even if multi-paged
-    CheckIfStopped()
+    if HaltIfStopped():
+        return
     catpage = Article(category)
     if not catpage.exists:
         return lalert(f"[IterateCategory] Attempted to iterate '{category}' despite it not existing")
@@ -490,7 +493,8 @@ def IterateCategory(category, torun):
         torun(Article(page["pageid"]))
     cmcontinue = "continue" in data and data["continue"]["cmcontinue"]
     while cmcontinue:
-        CheckIfStopped()
+        if HaltIfStopped():
+            return
         data = requestapi("get", f"action=query&list=categorymembers&cmtype=page&cmlimit=100&cmpageid={catpage.PageID}&cmcontinue={cmcontinue}")
         for page in data["query"]["categorymembers"]:
             torun(Article(page["pageid"]))

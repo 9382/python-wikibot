@@ -142,7 +142,9 @@ def __main__():
     prevHour = datetime.datetime.now().hour #Hourly checks
     while True:
         curHour = datetime.datetime.now().hour
-        if curHour != prevHour:
+        if CheckIfStopped():
+            prevHour = datetime.datetime.now().hour
+        elif curHour != prevHour:
             prevHour = curHour
             log("Beginning cycle")
             Config.update()
