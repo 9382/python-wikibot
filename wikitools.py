@@ -305,6 +305,8 @@ class Article: #Creates a class representation of an article to contain function
         self.exists = not "missing" in pageInfo
         self.Title = pageInfo["title"]
         self.URLTitle = urllib.parse.quote(self.Title)
+        self.ContentModel = pageInfo["contentmodel"]
+        self.LastTouched = datetime.datetime.fromisoformat(pageInfo["touched"][:-1])
         self.IsRedirect = "redirect" in pageInfo
         self.WasRedirected = FollowRedirects and "redirects" in rawData["query"]
         self.CanEdit = "edit" in pageInfo["actions"]
@@ -511,6 +513,8 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
         if not Page.exists:
             return lalert(f"[WikiConfig] Page {self.Page} doesn't exist")
         else:
+            if Page.ContentModel != "json":
+                lwarn(f"[WikiConfig] Page {self.Page} has a non-json content model {Page.ContentModel}")
             try:
                 NewConfig = json.loads(Page.GetContent())
             except Exception as exc:
