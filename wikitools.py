@@ -286,7 +286,7 @@ def CheckActionCount():
 
 bracketbalancereg = regex.compile('{{|}}') #For template processing
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
-    def __init__(self, identifier):
+    def __init__(self, identifier, *, FollowRedirects=False):
         if type(identifier) == str:
             identifier = urllib.parse.quote(identifier.replace("_", " "))
             searchType = "titles"
@@ -297,8 +297,8 @@ class Article: #Creates a class representation of an article to contain function
             searchType = "pageids"
         else:
             raise Exception(f"Invalid identifier input '{identifier}'")
-        pageInfo = requestapi("get", f"action=query&prop=info&indexpageids=&intestactions=edit|move&{searchType}={identifier}")
-        pageInfo = pageInfo["query"]["pages"][pageInfo["query"]["pageids"][0]] #Loooovely oneliner, ay?
+        rawData = requestapi("get", f"action=query&prop=info&indexpageids=&intestactions=edit|move&{searchType}={identifier}{FollowRedirects and '&redirects=' or ''}")
+        pageInfo = rawData["query"]["pages"][rawData["query"]["pageids"][0]] #Loooovely oneliner, ay?
         self.rawdata = pageInfo
         self.NamespaceID = pageInfo["ns"]
         self.Namespace = GetNamespace(self.NamespaceID)
@@ -306,6 +306,7 @@ class Article: #Creates a class representation of an article to contain function
         self.Title = pageInfo["title"]
         self.URLTitle = urllib.parse.quote(self.Title)
         self.IsRedirect = "redirect" in pageInfo
+        self.WasRedirected = FollowRedirects and "redirects" in rawData["query"]
         self.CanEdit = "edit" in pageInfo["actions"]
         self.CanMove = "move" in pageInfo["actions"]
         if self.exists:
@@ -504,8 +505,9 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
     def __init__(self, page, defaultConfig):
         self.Page = page
         self.Config = defaultConfig
+        self.update()
     def update(self):
-        Page = Article(self.Page)
+        Page = Article(self.Page, FollowRedirects=True)
         if not Page.exists:
             return lalert(f"[WikiConfig] Page {self.Page} doesn't exist")
         else:
