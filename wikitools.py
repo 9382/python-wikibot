@@ -306,7 +306,6 @@ class Article: #Creates a class representation of an article to contain function
         self.Title = pageInfo["title"]
         self.URLTitle = urllib.parse.quote(self.Title)
         self.ContentModel = pageInfo["contentmodel"]
-        self.LastTouched = datetime.datetime.fromisoformat(pageInfo["touched"][:-1])
         self.IsRedirect = "redirect" in pageInfo
         self.WasRedirected = FollowRedirects and "redirects" in rawData["query"]
         self.CanEdit = "edit" in pageInfo["actions"]
