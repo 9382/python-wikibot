@@ -112,9 +112,9 @@ def request(method, page, **kwargs):
             cookies[moreInfo[0]] = "=".join(moreInfo[1:])
             # print("Set cookie", moreInfo[0], "with value", "=".join(moreInfo[1:]))
     return request
-def requestapi(method, apimethod, **kwargs):
+def requestapi(method, apimethod, DoAssert=True, **kwargs):
     #Similar to request, but also runs some automatic checks on the return content
-    apirequest = request(method, "w/api.php?"+apimethod+"&format=json&assert=user", **kwargs)
+    apirequest = request(method, "w/api.php?"+apimethod+f"&format=json{DoAssert and '&assert=user' or ''}", **kwargs)
     data = apirequest.json()
     if "error" in data: #Request failed
         code,info = data["error"]["code"], data["error"]["info"]
@@ -126,16 +126,16 @@ def requestapi(method, apimethod, **kwargs):
     # print("Haha look at me its raw data man for",method,apimethod,data)
     return data
 def GetTokenForType(actiontype):
-    return requestapi("get", "action=query&meta=tokens&type=*")["query"]["tokens"][f"{actiontype}token"]
+    return requestapi("get", "action=query&meta=tokens&type=*", DoAssert=False)["query"]["tokens"][f"{actiontype}token"]
 boundary = "-----------PYB"+str(random.randint(1e9, 9e9)) #Any obscure string works
 verbose("request", f"Using boundary {boundary}")
-def CreateAPIFormRequest(location, data):
+def CreateAPIFormRequest(location, data, DoAssert=True):
     #For post-based api requests. Helps avoid the possiblity of url encoding issues
     finaltext = ""
     for key, value in data.items():
         finaltext += f"""{boundary}\nContent-Disposition: form-data; name="{key}"\n\n{value}\n"""
     finaltext += f"{boundary}--"
-    return requestapi("post", location, data=finaltext.encode("utf-8"), headers={"Content-Type":f"multipart/form-data; boundary={boundary[2:]}"})
+    return requestapi("post", location, DoAssert=DoAssert, data=finaltext.encode("utf-8"), headers={"Content-Type":f"multipart/form-data; boundary={boundary[2:]}"})
 
 def CheckIfStopped():
     return activelyStopped
@@ -532,7 +532,7 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
 def AttemptLogin(name, password):
     global username, userid
     log(f"Attempting to log-in as {name}")
-    loginAttempt = CreateAPIFormRequest("action=login", {"lgname":name, "lgpassword":password, "lgtoken":GetTokenForType("login")})["login"]
+    loginAttempt = CreateAPIFormRequest("action=login", {"lgname":name, "lgpassword":password, "lgtoken":GetTokenForType("login")}, DoAssert=False)["login"]
     #TODO: Move away from the deprecated "login" and towards "clientlogin"
     #TODO: Consider adapting botpass instead of straight logging to allow stricter control
     if loginAttempt["result"] != "Success":
