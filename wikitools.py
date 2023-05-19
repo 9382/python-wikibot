@@ -114,7 +114,7 @@ def request(method, page, **kwargs):
     return request
 def requestapi(method, apimethod, **kwargs):
     #Similar to request, but also runs some automatic checks on the return content
-    apirequest = request(method, "w/api.php?"+apimethod+"&format=json", **kwargs)
+    apirequest = request(method, "w/api.php?"+apimethod+"&format=json&assert=user", **kwargs)
     data = apirequest.json()
     if "error" in data: #Request failed
         code,info = data["error"]["code"], data["error"]["info"]
