@@ -8,6 +8,10 @@ __all__ = [
         "requestapi", "CreateAPIFormRequest" #Avoid using these directly unless required
 ]
 
+## Notes:
+# All uses of datetime.datetime.fromisoformat will strip the last character since py3.8's datetime can't handle the ending Z
+# could be fixed by just upgrading python version but I am very lazy
+
 from dotenv import dotenv_values
 import urllib.parse
 import re as regex
@@ -348,7 +352,7 @@ class Article: #Creates a class representation of an article to contain function
                 return False
             editSummary += ") (INDEV"
         if not SUBMITEDITS:
-            #open(urllib.parse.quote(article).replace("/", "slash")+".txt", "w").write(newContent)
+            # open(urllib.parse.quote(self.Title).replace("/", "slash")+".txt", "w").write(newContent)
             return lwarn(f"[Article] Not submitting edit to {self} with summary '{editSummary}' as SUBMITEDITS is set to False")
         #All of our customary checks are done, now we actually start trying to edit the page
         CheckActionCount()
