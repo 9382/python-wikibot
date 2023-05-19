@@ -142,7 +142,7 @@ def __main__():
     prevHour = datetime.datetime.now().hour #Hourly checks
     while True:
         curHour = datetime.datetime.now().hour
-        if CheckIfStopped():
+        if HaltIfStopped():
             prevHour = datetime.datetime.now().hour
         elif curHour != prevHour:
             prevHour = curHour
