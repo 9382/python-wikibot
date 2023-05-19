@@ -20,6 +20,8 @@ import random
 import json
 import time
 import os
+colorama.init()
+
 #For an explenation of the config options below, please see the .env-example file
 envvalues = dotenv_values()
 SUBMITEDITS = envvalues["SUBMITEDITS"].lower() == "true"
@@ -27,19 +29,22 @@ INDEV = envvalues["INDEV"].lower() == "true"
 maxActionsPerMinute = int(envvalues["EDITSPERMIN"])
 maxEdits = int(envvalues["MAXEDITS"])
 
+activelyStopped = False
+APS = 60/maxActionsPerMinute
+lastActionTime = 0
+actionCount = 0
+
 isVerbose = envvalues["VERBOSE"].lower() == "true"
 def verbose(origin, content):
     if isVerbose:
         print(f"[Verbose {origin}] {content}")
-
-colorama.init()
 
 def currentDate():
     #The current date in YYYY-MM-DD hh:mm:ss
     return str(datetime.datetime.fromtimestamp(time.time()//1))
 def safeWriteToFile(filename, content, mode="w", encoding="UTF-8"):
     #Writes contents to a file, auto-creating the directory should it be missing
-    if filename.find("\\") > -1:
+    if filename.find("\\") > -1 or filename.find("/") > -1:
         try:
             os.makedirs("/".join(filename.replace("\\", "/").split("/")[:-1]), exist_ok=True)
         except:
@@ -71,11 +76,6 @@ def lwarn(content): #Yellow text
     return log(content, colour="\033[33m")
 def lsucc(content): #Green text
     return log(content, colour="\033[32m")
-
-activelyStopped = False
-APS = 60/maxActionsPerMinute
-lastActionTime = 0
-actionCount = 0
 
 if SUBMITEDITS:
     log("SUBMITEDITS is set to True. Edits will actually be made")
