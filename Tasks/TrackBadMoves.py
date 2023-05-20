@@ -76,8 +76,8 @@ def PostRelevantUpdates():
         logtime   = str(datetime.datetime.fromtimestamp(page['logtime']))
         logid     = str(page['logid'])
         checktime = str(datetime.datetime.fromtimestamp(page['checktime']))
-        output = output + f"\n|-\n{{{{/entry|oldpage={oldpage}|newpage={newpage}|subpages={subpages}|logtime={logtime}|logid={logid}|checktime={checktime}}}}}"
-    output = output + "\n|}"
+        output = output + f"|-\n{{{{/entry|oldpage={oldpage}|newpage={newpage}|subpages={subpages}|logtime={logtime}|logid={logid}|checktime={checktime}}}}}\n"
+    output = output + "|}"
     editMarker = "<!-- Bot Edit Marker -->"
     reportPage = Article(f"User:{username}/TrackBadMoves/report")
     existingContent = reportPage.GetContent()
