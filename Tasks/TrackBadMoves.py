@@ -109,7 +109,7 @@ def PerformLogCheck():
                 })
 
     for page in list(PagesToCheck):
-        if datetime.datetime.now().timestamp() > page["checktime"] + 60*Config.get("CheckBufferTime"):
+        if datetime.datetime.now().timestamp() > page["logtime"] + 60*Config.get("CheckBufferTime"):
             IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
             if IsPoor:
                 page["checktime"] = math.floor(datetime.datetime.now().timestamp())
