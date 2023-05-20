@@ -68,7 +68,7 @@ def PostRelevantUpdates():
                 FlaggedPages.remove(page)
             page["checktime"] = curTimestamp
 
-    output = '{| class="wikitable sortable"\n|+ Unfinished moves\n|-\n! Page !! New target !! Unmoved subpages !! Move time !! Log entry !! Last Checked'
+    output = ""
     for page in FlaggedPages:
         oldpage   = page['oldpage']
         newpage   = page['newpage']
