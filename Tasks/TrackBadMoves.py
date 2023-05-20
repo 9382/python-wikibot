@@ -70,13 +70,13 @@ def PostRelevantUpdates():
 
     output = '{| class="wikitable sortable"\n|+ Unfinished moves\n|-\n! Page !! New target !! Unmoved subpages !! Move time !! Log entry !! Last Checked'
     for page in FlaggedPages:
-        oldpage   = f"<!--oldpage: {page['oldpage']}-->[[{page['oldpage']}]]"
-        newpage   = f"<!--newpage: {page['newpage']}-->[[{page['newpage']}]]"
-        subpages  = f"<!--subpages: {page['subpages']}-->data-sort-value=\"{page['subpages']}\"|[[Special:PrefixIndex/{page['oldpage']}/|{page['subpages']}]]"
-        logtime   = f"<!--logtime: {page['logtime']}-->{datetime.datetime.fromtimestamp(page['logtime'])}"
-        logentry  = f"<!--logid: {page['logid']}-->[https://en.wikipedia.org/wiki/Special:Log?logid={page['logid']} {page['logid']}]"
-        checktime = f"<!--checktime: {page['checktime']}-->{datetime.datetime.fromtimestamp(page['checktime'])}"
-        output = output + f"\n|-\n| {oldpage} || {newpage} || {subpages} || {logtime} || {logentry} || {checktime}"
+        oldpage   = page['oldpage']
+        newpage   = page['newpage']
+        subpages  = str(page['subpages'])
+        logtime   = str(datetime.datetime.fromtimestamp(page['logtime']))
+        logid     = str(page['logid'])
+        checktime = str(datetime.datetime.fromtimestamp(page['checktime']))
+        output = output + f"\n|-\n{{{{/entry|oldpage={oldpage}|newpage={newpage}|subpages={subpages}|logtime={logtime}|logid={logid}|checktime={checktime}}}}}"
     output = output + "\n|}"
     editMarker = "<!-- Bot Edit Marker -->"
     reportPage = Article(f"User:{username}/TrackBadMoves/report")
@@ -122,26 +122,21 @@ def GatherExistingEntries():
     log("Attempting to parse existing entries...")
     reportPage = Article(f"User:{username}/TrackBadMoves/report")
     content = reportPage.GetContent()
-    LogRegex = regex.compile("<!--(\w+): (.+?)-->")
     for line in content.split("\n"):
-        if line.startswith("| "):
-            matches = LogRegex.findall(line)
-            if len(matches) == 6:
+        if line.startswith("{{/entry") and line.endswith("}}"):
+            try:
+                template = Template(line)
                 entry = {}
-                Invalid = False
-                for key,value in matches:
-                    if key in ["subpages", "logid", "logtime", "checktime"]:
-                        entry[key] = int(value)
-                    elif key in ["oldpage", "newpage"]:
-                        entry[key] = value
-                    else:
-                        lalert(f"Received unrecognised key {key} in GatherExistingEntries")
-                        Invalid = True
-                        break
-                if not Invalid:
-                    entries.append(entry)
-            elif len(matches) > 0:
-                lwarn(f"Unable to parse line '{line}' - got {len(matches)} matches instead of the expected 6")
+                for key in ["oldpage", "newpage"]:
+                    entry[key] = template.Args[key]
+                for key in ["subpages", "logid"]:
+                    entry[key] = int(template.Args[key])
+                for key in ["logtime", "checktime"]:
+                    entry[key] = math.floor(datetime.datetime.fromisoformat(template.Args[key]).timestamp())
+            except Exception as exc:
+                lwarn(f"Unable to parse line '{line}' - {exc}")
+            else:
+                entries.append(entry)
     log(f"Managed to parse {len(entries)} entries")
     return entries
 
