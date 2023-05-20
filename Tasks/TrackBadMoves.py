@@ -103,7 +103,7 @@ def PerformLogCheck():
             if IsPoor:
                 log(f"'{OldPage}' is now in the buffer check")
                 PagesToCheck.append({
-                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(Data), "logid":events["logid"],
+                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(Data), "logid":event["logid"],
                     "logtime":datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp(),
                     "checktime":math.floor(datetime.datetime.now().timestamp()),
                 })
