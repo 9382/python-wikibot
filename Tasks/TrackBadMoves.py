@@ -56,6 +56,9 @@ def PostRelevantUpdates():
     FlaggedPages.extend(PagesToFlag)
     #We do it this way to allow a human to essentially intervene and manually declare/undeclare a move as poor
     PagesToFlag = []
+    pagesDropped = 0
+    pagesKept = 0
+    pagesUnchecked = 0
     for page in list(FlaggedPages):
         curTimestamp = math.floor(datetime.datetime.now().timestamp())
         if curTimestamp > page["logtime"] + 3600*Config.get("TimeUntilSlowRecheck"):
@@ -65,8 +68,13 @@ def PostRelevantUpdates():
         if curTimestamp > page["checktime"] + waitTime-300: #5m offset to avoid stupid off-by-1-second cases
             IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
             if not IsPoor:
+                pagesDropped += 1
                 FlaggedPages.remove(page)
+            else:
+                pagesKept += 1
             page["checktime"] = curTimestamp
+        else:
+            pagesUnchecked += 1
 
     output = ""
     for page in FlaggedPages:
@@ -85,7 +93,22 @@ def PostRelevantUpdates():
         headerText = editMarker+"\n"
     else:
         headerText = existingContent[:existingContent.find(editMarker)+len(editMarker)+1]
-    reportPage.edit(headerText+output, "Update report")
+
+    editSummary = "Update report"
+    if pagesDropped == 1:
+        editSummary += " | 1 page removed"
+    elif pagesDropped > 1:
+        editSummary += f" | {pagesDropped} pages removed"
+    if pagesKept == 1:
+        editSummary += " | 1 page checked"
+    elif pagesKept > 1:
+        editSummary += f" | {pagesKept} pages checked"
+    if pagesUnchecked == 1:
+        editSummary += " | 1 page unchecked"
+    elif pagesUnchecked > 1:
+        editSummary += f" | {pagesUnchecked} pages unchecked"
+
+    reportPage.edit(headerText+output, editSummary)
 
 def PerformLogCheck():
     global PagesToCheck
