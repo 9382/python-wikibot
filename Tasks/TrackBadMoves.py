@@ -60,7 +60,7 @@ def PostRelevantUpdates():
     pagesKept = 0
     pagesUnchecked = 0
     for page in list(FlaggedPages):
-        curTimestamp = math.floor(datetime.datetime.now().timestamp())
+        curTimestamp = math.floor(datetime.datetime.utcnow().timestamp())
         if curTimestamp > page["logtime"] + 3600*Config.get("TimeUntilSlowRecheck"):
             waitTime = 3600*Config.get("SlowRecheckTime")
         else:
@@ -128,14 +128,14 @@ def PerformLogCheck():
                 PagesToCheck.append({
                     "oldpage":OldPage, "newpage":NewPage, "subpages":len(Data), "logid":event["logid"],
                     "logtime":datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp(),
-                    "checktime":math.floor(datetime.datetime.now().timestamp()),
+                    "checktime":math.floor(datetime.datetime.utcnow().timestamp()),
                 })
 
     for page in list(PagesToCheck):
-        if datetime.datetime.now().timestamp() > page["logtime"] + 60*Config.get("CheckBufferTime"):
+        if datetime.datetime.utcnow().timestamp() > page["logtime"] + 60*Config.get("CheckBufferTime"):
             IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
             if IsPoor:
-                page["checktime"] = math.floor(datetime.datetime.now().timestamp())
+                page["checktime"] = math.floor(datetime.datetime.utcnow().timestamp())
                 lwarn(f"{page['oldpage']} has failed the buffer check, and has now moved to the flagged list")
                 PagesToFlag.append(page)
             PagesToCheck.remove(page)
@@ -165,14 +165,14 @@ def GatherExistingEntries():
 
 
 def __main__():
-    prevMinute = datetime.datetime.now().minute
-    prevHour = datetime.datetime.now().hour
+    prevMinute = datetime.datetime.utcnow().minute
+    prevHour = datetime.datetime.utcnow().hour
     while True:
-        curMinute = datetime.datetime.now().minute
-        curHour = datetime.datetime.now().hour
+        curMinute = datetime.datetime.utcnow().minute
+        curHour = datetime.datetime.utcnow().hour
         if HaltIfStopped():
-            prevMinute = datetime.datetime.now().minute
-            prevHour = datetime.datetime.now().hour
+            prevMinute = datetime.datetime.utcnow().minute
+            prevHour = datetime.datetime.utcnow().hour
         elif curHour != prevHour:
             prevMinute = curMinute
             prevHour = curHour

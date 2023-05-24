@@ -139,11 +139,11 @@ def CheckArchiveLocations(page):
 
 def __main__():
     # CheckArchiveLocations(Article(f"User:{username}/encoded–title"))
-    prevHour = datetime.datetime.now().hour #Hourly checks
+    prevHour = datetime.datetime.utcnow().hour #Hourly checks
     while True:
-        curHour = datetime.datetime.now().hour
+        curHour = datetime.datetime.utcnow().hour
         if HaltIfStopped():
-            prevHour = datetime.datetime.now().hour
+            prevHour = datetime.datetime.utcnow().hour
         elif curHour != prevHour:
             prevHour = curHour
             log("Beginning cycle")

@@ -253,7 +253,7 @@ class Revision: #For getting the history of pages
         self.User = ("userhidden" in data and "< User hidden >") or data["user"]
         self.Timestamp = data["timestamp"][:-1] #Strip the ending Z for datetime
         self.Date = datetime.datetime.fromisoformat(self.Timestamp)
-        self.Age = (datetime.datetime.now() - self.Date).total_seconds()
+        self.Age = (datetime.datetime.utcnow() - self.Date).total_seconds()
         self.Comment = ("commenthidden" in data and "< Comment hidden >") or data["comment"]
         self.Size = data["size"]
         if type(diff) == int:
