@@ -37,7 +37,6 @@ activelyStopped = False
 APS = 60/maxActionsPerMinute
 lastActionTime = 0
 actionCount = 0
-
 isVerbose = envvalues["VERBOSE"].lower() == "true"
 def verbose(origin, content):
     if isVerbose:
@@ -64,22 +63,24 @@ def safeWriteToFile(filename, content, mode="w", encoding="UTF-8"):
         return False, f"Failed to write content for {filename}"
     file.close()
     return True, f"Successfully wrote to {filename}"
-def log(content, *, colour=""):
+
+_logSession = f"{currentDate()[:10]}.{int(time.time()//1)}"
+def log(content, *, colour="", LogType="Log"):
     #Manages the writing to a day-based log file for debugging
-    prefixText = f"{currentDate()[11:]} - {threading.current_thread().name}"
-    print(f"{colour}[Log {prefixText}] {content}\033[0m")
-    success, result = safeWriteToFile(f"Logs/{currentDate()[:10]}.log", f"[{prefixText}] {content}\n", "a")
+    prefixText = f"{LogType} {currentDate()[11:]} - {threading.current_thread().name}"
+    print(f"{colour}[{prefixText}] {content}\033[0m")
+    success, result = safeWriteToFile(f"Logs/{_logSession}.log", f"[{prefixText}] {content}\n", "a")
     if not success:
-        print(f"\033[41m\033[30m[Log {prefixText}] Failed to write to log file: {result}\033[0m")
+        print(f"\033[41m\033[30m[{prefixText}] Failed to write to log file: {result}\033[0m")
     return success
 def lerror(content): #Black text, red background
-    return log(content, colour="\033[41m\033[30m")
+    return log(content, colour="\033[41m\033[30m", LogType="Error")
 def lalert(content): #Red text
-    return log(content, colour="\033[31m")
+    return log(content, colour="\033[31m", LogType="Alert")
 def lwarn(content): #Yellow text
-    return log(content, colour="\033[33m")
+    return log(content, colour="\033[33m", LogType="Warning")
 def lsucc(content): #Green text
-    return log(content, colour="\033[32m")
+    return log(content, colour="\033[32m", LogType="Success")
 
 if SUBMITEDITS:
     log("SUBMITEDITS is set to True. Edits will actually be made")
