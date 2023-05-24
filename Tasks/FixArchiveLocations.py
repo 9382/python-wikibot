@@ -64,6 +64,8 @@ def DetermineBadMove(page):
                 if not subpage.CanMove:
                     #If we can't move one of the subpages for any reason (titleblacklist, protection, etc.), dont move any
                     return MarkUnsafe(currentLocation, "Some subpages can't be moved")
+                if subpage.HasExclusion():
+                    return MarkUnsafe(currentLocation, "At least one subpage has bot exclusion")
 
             #All cool, go ahead and move (just make sure it happened a bit ago)
             if revision.Age < 3600*Config.get("TimeUntilMoveAction"):
@@ -82,6 +84,8 @@ def DetermineBadMove(page):
 def CheckArchiveLocations(page):
     content = page.GetContent()
     currentLocation = page.Title
+    if page.HasExclusion():
+        return MarkUnsafe(currentLocation, "The bot is excluded from the target page")
     extraNote = ""
     for template in page.GetTemplates(): #Will only fix the first template occurance, and not any more
         if archiveTemplates.search(template.Template):
