@@ -53,9 +53,7 @@ def CreateSortableDate(datetime):
 def PostRelevantUpdates():
     global PagesToFlag
     FlaggedPages = GatherExistingEntries()
-    FlaggedPages.extend(PagesToFlag)
     #We do it this way to allow a human to essentially intervene and manually declare/undeclare a move as poor
-    PagesToFlag = []
     pagesDropped = 0
     pagesKept = 0
     pagesUnchecked = 0
@@ -75,6 +73,9 @@ def PostRelevantUpdates():
             page["checktime"] = curTimestamp
         else:
             pagesUnchecked += 1
+    FlaggedPages.extend(PagesToFlag)
+    pagesAdded = len(PagesToFlag)
+    PagesToFlag = []
 
     output = ""
     for page in FlaggedPages:
@@ -99,14 +100,11 @@ def PostRelevantUpdates():
         editSummary += " | 1 page removed"
     elif pagesDropped > 1:
         editSummary += f" | {pagesDropped} pages removed"
-    if pagesKept == 1:
-        editSummary += " | 1 page checked"
-    elif pagesKept > 1:
-        editSummary += f" | {pagesKept} pages checked"
-    if pagesUnchecked == 1:
-        editSummary += " | 1 page unchecked"
-    elif pagesUnchecked > 1:
-        editSummary += f" | {pagesUnchecked} pages unchecked"
+    editSummary += f" | {pagesKept}/{pagesKept+pagesUncecked} pages re-checked"
+    if pagesAdded == 1:
+        editSummary += " | 1 page added"
+    elif pagesAdded > 1:
+        editSummary += f" | {pagesAdded} pages added"
 
     reportPage.edit(headerText+output, editSummary)
 
