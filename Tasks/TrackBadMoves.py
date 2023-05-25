@@ -100,7 +100,7 @@ def PostRelevantUpdates():
         editSummary += " | 1 page removed"
     elif pagesDropped > 1:
         editSummary += f" | {pagesDropped} pages removed"
-    editSummary += f" | {pagesKept}/{pagesKept+pagesUncecked} pages re-checked"
+    editSummary += f" | {pagesKept}/{pagesKept+pagesUnchecked} pages re-checked"
     if pagesAdded == 1:
         editSummary += " | 1 page added"
     elif pagesAdded > 1:
