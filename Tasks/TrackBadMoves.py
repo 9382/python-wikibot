@@ -57,8 +57,6 @@ def PostRelevantUpdates():
         if not IsPoor:
             pagesDropped += 1
             FlaggedPages.remove(page)
-        else:
-            pagesKept += 1
     FlaggedPages.extend(PagesToFlag)
     pagesAdded = len(PagesToFlag)
     PagesToFlag = []
