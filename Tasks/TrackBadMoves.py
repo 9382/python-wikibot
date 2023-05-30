@@ -24,7 +24,7 @@ def DetermineIfMoveIsPoor(oldpage, newpage):
         return False, 2
     if not NewPage.GetLinkedPage().exists: #Confusing move, dont touch
         return False, 3
-    if NewPage.IsRedirect or not OldPage.IsRedirect: #Move reverted in some way
+    if not OldPage.IsRedirect: #Move reverted in some way
         return False, 4
     OldSubpages = OldPage.GetSubpages()
     if len(OldSubpages) > 0:
@@ -55,24 +55,13 @@ def PostRelevantUpdates():
     FlaggedPages = GatherExistingEntries()
     #We do it this way to allow a human to essentially intervene and manually declare/undeclare a move as poor
     pagesDropped = 0
-    pagesKept = 0
-    pagesUnchecked = 0
     for page in list(FlaggedPages):
-        curTimestamp = math.floor(datetime.datetime.utcnow().timestamp())
-        if curTimestamp > page["logtime"] + 3600*Config.get("TimeUntilSlowRecheck"):
-            waitTime = 3600*Config.get("SlowRecheckTime")
+        IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
+        if not IsPoor:
+            pagesDropped += 1
+            FlaggedPages.remove(page)
         else:
-            waitTime = 3600*Config.get("RecheckTime")
-        if curTimestamp > page["checktime"] + waitTime-300: #5m offset to avoid stupid off-by-1-second cases
-            IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
-            if not IsPoor:
-                pagesDropped += 1
-                FlaggedPages.remove(page)
-            else:
-                pagesKept += 1
-            page["checktime"] = curTimestamp
-        else:
-            pagesUnchecked += 1
+            pagesKept += 1
     FlaggedPages.extend(PagesToFlag)
     pagesAdded = len(PagesToFlag)
     PagesToFlag = []
@@ -84,8 +73,7 @@ def PostRelevantUpdates():
         subpages  = str(page['subpages'])
         logtime   = str(datetime.datetime.fromtimestamp(page['logtime']))
         logid     = str(page['logid'])
-        checktime = str(datetime.datetime.fromtimestamp(page['checktime']))
-        output = output + f"|-\n{{{{/entry|oldpage={oldpage}|newpage={newpage}|subpages={subpages}|logtime={logtime}|logid={logid}|checktime={checktime}}}}}\n"
+        output = output + f"|-\n{{{{/entry|oldpage={oldpage}|newpage={newpage}|subpages={subpages}|logtime={logtime}|logid={logid}}}}}\n"
     output = output + "|}"
     editMarker = "<!-- Bot Edit Marker -->"
     reportPage = Article(f"User:{username}/TrackBadMoves/report")
@@ -100,7 +88,6 @@ def PostRelevantUpdates():
         editSummary += " | 1 page removed"
     elif pagesDropped > 1:
         editSummary += f" | {pagesDropped} pages removed"
-    editSummary += f" | {pagesKept}/{pagesKept+pagesUnchecked} pages re-checked"
     if pagesAdded == 1:
         editSummary += " | 1 page added"
     elif pagesAdded > 1:
@@ -125,15 +112,13 @@ def PerformLogCheck():
                 log(f"'{OldPage}' is now in the buffer check")
                 PagesToCheck.append({
                     "oldpage":OldPage, "newpage":NewPage, "subpages":len(Data), "logid":event["logid"],
-                    "logtime":datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp(),
-                    "checktime":math.floor(datetime.datetime.utcnow().timestamp()),
+                    "logtime":datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp()
                 })
 
     for page in list(PagesToCheck):
         if datetime.datetime.utcnow().timestamp() > page["logtime"] + 60*Config.get("CheckBufferTime"):
             IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
             if IsPoor:
-                page["checktime"] = math.floor(datetime.datetime.utcnow().timestamp())
                 lwarn(f"{page['oldpage']} has failed the buffer check, and has now moved to the flagged list")
                 PagesToFlag.append(page)
             PagesToCheck.remove(page)
@@ -152,7 +137,7 @@ def GatherExistingEntries():
                     entry[key] = template.Args[key]
                 for key in ["subpages", "logid"]:
                     entry[key] = int(template.Args[key])
-                for key in ["logtime", "checktime"]:
+                for key in ["logtime"]:
                     entry[key] = math.floor(datetime.datetime.fromisoformat(template.Args[key]).timestamp())
             except Exception as exc:
                 lwarn(f"Unable to parse line '{line}' - {exc}")
