@@ -7,10 +7,7 @@ import time
 import math
 
 Config = WikiConfig(f"User:{username}/TrackBadMoves/config", {
-    "CheckBufferTime": 10,
-    "RecheckTime": 2,
-    "TimeUntilSlowRecheck": 24,
-    "SlowRecheckTime": 12,
+    "CheckBufferTime": 10
 })
 
 PagesToCheck = []
