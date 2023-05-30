@@ -84,8 +84,6 @@ def DetermineBadMove(page):
 def CheckArchiveLocations(page):
     content = page.GetContent()
     currentLocation = page.Title
-    if page.HasExclusion():
-        return MarkUnsafe(currentLocation, "The bot is excluded from the target page")
     extraNote = ""
     for template in page.GetTemplates(): #Will only fix the first template occurance, and not any more
         if archiveTemplates.search(template.Template):
@@ -97,6 +95,9 @@ def CheckArchiveLocations(page):
                     #Most common case: Result of a page move, no GIGO problems
                     existingArchive = regex.compile("(?:/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee] %\(counter\)d)").search(archiveLocation) #For simplicity, only deal with %(counter)d
                     if existingArchive:
+                        #Lets just make sure it's not bot blocked
+                        if page.HasExclusion():
+                            return MarkUnsafe(currentLocation, "The bot cleared the initial GIGO checks, but is excluded from the target page")
                         wantedLocation = existingArchive.group()
                         verbose("Archive Fix", f"Attempting to preserve {wantedLocation}")
                         if wantedLocation[0] == "/": #Stupid but eh
