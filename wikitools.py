@@ -107,7 +107,6 @@ def request(method, page, **kwargs):
     if timeTaken > 2.5:
         lwarn(f"[request] Just took {timeTaken}s to complete a single request - are we running alright?")
     if "set-cookie" in request.headers:
-        verbose("request", "Attempting to note down some new cookies")
         setcookies = request.headers["set-cookie"].split(", ")
         for cookie in setcookies:
             actualCookie = cookie.split(";")[0]
