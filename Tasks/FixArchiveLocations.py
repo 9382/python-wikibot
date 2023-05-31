@@ -91,7 +91,6 @@ def CheckArchiveLocations(page):
                 archiveLocation = template.Args["archive"]
                 #Attempt to fix the archive location, as well as cleaning up any issues left behind
                 if not archiveLocation.startswith(currentLocation+"/"): #Not a subpage
-                    verbose("Archive Fix", f"{page} currently has {archiveLocation}, but we should have something with {currentLocation}")
                     #Most common case: Result of a page move, no GIGO problems
                     existingArchive = regex.compile("(?:/|^)([Aa][Rr][Cc][Hh][Ii][Vv][Ee] %\(counter\)d)").search(archiveLocation) #For simplicity, only deal with %(counter)d
                     if existingArchive:
@@ -99,7 +98,6 @@ def CheckArchiveLocations(page):
                         if page.HasExclusion():
                             return MarkUnsafe(currentLocation, "The bot cleared the initial GIGO checks, but is excluded from the target page")
                         wantedLocation = existingArchive.group()
-                        verbose("Archive Fix", f"Attempting to preserve {wantedLocation}")
                         if wantedLocation[0] == "/": #Stupid but eh
                             newArchive = currentLocation+wantedLocation
                         else:
@@ -126,7 +124,7 @@ def CheckArchiveLocations(page):
                             break
 
                         else: #Archive exists under the page already, fixes can go ahead
-                            verbose("Archive Fix", "Safety test has been passed")
+                            lsucc("[Archive Fix] Safety test has been passed")
                             template.ChangeKeyData("archive", newArchive)
                             content = content.replace(template.Original, template.Text)
                             break
