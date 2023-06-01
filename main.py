@@ -33,6 +33,7 @@ threading.excepthook = OnThreadError
 execList = {}
 #Odd approach but it works
 for file in os.listdir("Tasks"):
+    filename = file[:-3] #Removes .py extension
     if not os.path.isfile("Tasks/"+file):
         if file != "__pycache__":
             verbose("Tasks", f"{file} is a subfolder and shouldn't be within the /Tasks")
@@ -40,17 +41,16 @@ for file in os.listdir("Tasks"):
     if not file.endswith(".py"):
         verbose("Tasks", f"{file} doesn't end with .py, it shouldn't be within the /Tasks")
         continue
-    if file[:-3].lower() in EnabledTasks: #Removes .py extension
+    if filename.lower() in EnabledTasks:
         log(f"[Tasks] Running task {file}")
         try:
-            exec(f"from Tasks import {file[:-3]} as ImportedTask")
-            # If someone could please tell me how the hell to do this with importlib or __import__ that would be wonderful
-            # Because I tried for like 20 minutes but it was being uncooperative
+            ImportedTask = __import__(f"Tasks.{filename}", globals(), locals(), [], 0).__dict__[filename]
+            #While this works, it feels somewhat stupid, but attempting to use the fromlist never appears to work
         except Exception as exc:
             lerror(f"[Tasks] Task {file} import error -> {traceback.format_exc()}")
         else:
             try:
-                taskThread = threading.Thread(target=ImportedTask.__main__, name=file[:-3])
+                taskThread = threading.Thread(target=ImportedTask.__main__, name=filename)
                 taskThread.start()
             except Exception as exc:
                 lerror(f"[Tasks] Task {file} execution error -> {traceback.format_exc()}")
@@ -59,6 +59,7 @@ for file in os.listdir("Tasks"):
 lsucc("Finished loading tasks")
 
 #Constant safety checks
+expectedTaskCount = threading.active_count()
 while True:
     time.sleep(30)
     tasks = threading.active_count()
@@ -66,6 +67,9 @@ while True:
     if tasks == 1:
         lalert("All tasks seem to have been terminated or finished")
         break
+    elif tasks < expectedTaskCount:
+        lwarn(f"We seem to have dropped from {expectedTaskCount}+1 tasks to {tasks}+1 - Could be a one-off task, but there may have also been an error")
+        expectedTaskCount = tasks
     #Verify we're logged in and not stopped
     try:
         confirmStatus = requestapi("get", "action=query&assert=user")
