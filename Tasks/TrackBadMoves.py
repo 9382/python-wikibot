@@ -49,16 +49,17 @@ def CreateSortableDate(datetime):
 
 def PostRelevantUpdates():
     global PagesToFlag
-    FlaggedPages = GatherExistingEntries()
     #We do it this way to allow a human to essentially intervene and manually declare/undeclare a move as poor
+    FlaggedPages = GatherExistingEntries()
+    FlaggedPages.extend(PagesToFlag)
     pagesDropped = 0
     for page in list(FlaggedPages):
         IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
         if not IsPoor:
             pagesDropped += 1
             FlaggedPages.remove(page)
-    FlaggedPages.extend(PagesToFlag)
     pagesAdded = len(PagesToFlag)
+    pagesPastCheck = len(FlaggedPages)
     PagesToFlag = []
 
     output = ""
@@ -79,6 +80,10 @@ def PostRelevantUpdates():
         headerText = existingContent[:existingContent.find(editMarker)+len(editMarker)+1]
 
     editSummary = "Update report"
+    if pagesPastCheck == 1:
+        editSummary += " (1 entry)"
+    else:
+        editSummary += f" ({pagesPastCheck} entries)"
     if pagesDropped == 1:
         editSummary += " | 1 page removed"
     elif pagesDropped > 1:
