@@ -69,7 +69,7 @@ while True:
         break
     elif tasks < expectedTaskCount:
         lwarn(f"We seem to have dropped from {expectedTaskCount}+1 tasks to {tasks}+1 - Could be a one-off task, but there may have also been an error")
-        expectedTaskCount = tasks
+    expectedTaskCount = tasks
     #Verify we're logged in and not stopped
     try:
         confirmStatus = requestapi("get", "action=query&assert=user")
