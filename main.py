@@ -1,10 +1,11 @@
 #coding: utf-8
 # [!] If you need to change the basic settings of the bot, please see the .env-example, not here
-# [?] This file only handles logging in and maintenance of tasks. For the backend of the tools, see wikitools.py
+# [?] This file only handles logging in and maintenance of tasks. For the backend of all the tools, see wikitools.py
 
 from dotenv import dotenv_values
 import traceback
 import threading
+import requests
 import time
 import os
 
@@ -22,6 +23,23 @@ if not DidLogin:
 
 #Task loader
 log("Attempting to load tasks...")
+def BeginTaskCycle(func, funcName=None):
+    if not funcName:
+        funcName = repr(func)
+    while True:
+        log(f"[Tasks] Beginning task cycle for {funcName}")
+        try:
+            func()
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            #Revive threads that died due to connection errors
+            lerror(f"[Tasks] Function {funcName} just threw a timeout error: {exc}")
+            continue
+        except BaseException as exc:
+            lerror(f"[Tasks] Function {funcName} just threw a critical (not request based) error: {traceback.format_exc()}\nThis thread will not be restarting")
+            break
+        else:
+            lwarn(f"[Tasks] Function {funcName} exited the loop without error, and so will not be restarterd")
+            break
 def OnThreadError(args):
     out = "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback))
     thread = args.thread
@@ -45,55 +63,54 @@ for file in os.listdir("Tasks"):
         log(f"[Tasks] Running task {file}")
         try:
             ImportedTask = __import__(f"Tasks.{filename}", globals(), locals(), [], 0).__dict__[filename]
-            #While this works, it feels somewhat stupid, but attempting to use the fromlist never appears to work
+            #While this works, it feels somewhat stupid, but we go with it
         except Exception as exc:
             lerror(f"[Tasks] Task {file} import error -> {traceback.format_exc()}")
         else:
-            try:
-                taskThread = threading.Thread(target=ImportedTask.__main__, name=filename)
-                taskThread.start()
-            except Exception as exc:
-                lerror(f"[Tasks] Task {file} execution error -> {traceback.format_exc()}")
+            taskThread = threading.Thread(target=BeginTaskCycle, args=(ImportedTask.__main__, filename), name=filename)
+            taskThread.start()
     else:
         log(f"[Tasks] Skipping task {file} as it is not enabled")
 lsucc("Finished loading tasks")
 
 #Constant safety checks
-expectedTaskCount = threading.active_count()
-while True:
-    time.sleep(30)
-    tasks = threading.active_count()
-    # log(f"Active task count: {tasks-1}")
-    if tasks == 1:
-        lalert("All tasks seem to have been terminated or finished")
-        break
-    elif tasks < expectedTaskCount:
-        lwarn(f"We seem to have dropped from {expectedTaskCount}+1 tasks to {tasks}+1 - Could be a one-off task, but there may have also been an error")
-    expectedTaskCount = tasks
-    #Verify we're logged in and not stopped
-    try:
-        confirmStatus = requestapi("get", "action=query&assert=user")
-    except Exception as exc:
-        if type(exc) == APIException and exc.code == "assertuserfailed":
-            lerror(f"assert=user has failed as we appear to be logged out. Re-requesting login...")
-            SetStopped(True)
-            DidLogin, username = AttemptLogin(envvalues["USER"], envvalues["PASS"])
-            if not DidLogin:
-                lerror("Failed to log back in.")
-            else:
-                lsucc("Managed to log back in. Resuming tasks...")
-                SetStopped(False)
-        else:
-            lerror(f"assert=user request had an error. Reason: {exc}")
-            SetStopped(True)
-    else:
-        panic = Article(f"User:{username}/panic")
-        if panic.exists:
-            if panic.GetContent().strip().lower() == "true":
+def panicCheck():
+    expectedTaskCount = threading.active_count()
+    while True:
+        time.sleep(30)
+        tasks = threading.active_count()
+        # log(f"Active task count: {tasks-1}")
+        if tasks == 1:
+            lalert("All tasks seem to have been terminated or finished")
+            break
+        elif tasks < expectedTaskCount:
+            lwarn(f"We seem to have dropped from {expectedTaskCount}+1 tasks to {tasks}+1 - Could be a one-off task, but there may have also been an error")
+        expectedTaskCount = tasks
+        #Verify we're logged in and not stopped
+        try:
+            confirmStatus = requestapi("get", "action=query&assert=user")
+        except Exception as exc:
+            if type(exc) == APIException and exc.code == "assertuserfailed":
+                lerror(f"assert=user has failed as we appear to be logged out. Re-requesting login...")
                 SetStopped(True)
+                DidLogin, username = AttemptLogin(envvalues["USER"], envvalues["PASS"])
+                if not DidLogin:
+                    lerror("Failed to log back in.")
+                else:
+                    lsucc("Managed to log back in. Resuming tasks...")
+                    SetStopped(False)
             else:
-                SetStopped(False)
+                lerror(f"assert=user request had an error. Reason: {exc}")
+                SetStopped(True)
         else:
-            lwarn(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
-            SetStopped(True)
+            panic = Article(f"User:{username}/panic")
+            if panic.exists:
+                if panic.GetContent().strip().lower() == "true":
+                    SetStopped(True)
+                else:
+                    SetStopped(False)
+            else:
+                lwarn(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
+                SetStopped(True)
+BeginTaskCycle(panicCheck, "Main Loop")
 input("Press enter to exit...")
