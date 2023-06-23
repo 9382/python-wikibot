@@ -305,6 +305,11 @@ class Article: #Creates a class representation of an article to contain function
         self.exists = not "missing" in pageInfo
         self.Title = pageInfo["title"]
         self.URLTitle = urllib.parse.quote(self.Title)
+        if self.NamespaceID != 0:
+            self.StrippedTitle = self.Title[len(self.Namespace)+1:]
+        else:
+            self.StrippedTitle = self.Title
+        self.StrippedURLTitle = urllib.parse.quote(self.StrippedTitle)
         self.ContentModel = pageInfo["contentmodel"]
         self.IsRedirect = "redirect" in pageInfo
         self.WasRedirected = FollowRedirects and "redirects" in rawData["query"]
@@ -313,6 +318,9 @@ class Article: #Creates a class representation of an article to contain function
         if self.exists:
             self.PageID = pageInfo["pageid"]
             self.CurrentRevision = pageInfo["lastrevid"]
+        else:
+            self.PageID = None
+            self.CurrentRevision = None
         #Storage variables
         self.Content = None
         self.Templates = None
@@ -340,7 +348,7 @@ class Article: #Creates a class representation of an article to contain function
             return lwarn(f"[Article] Refusing to edit article that doesnt exist ({self})")
         if not bypassExclusion and self.HasExclusion():
             #Its been requested we stay away, so we will
-            return lwarn(f"[Article] Refusing to edit page that has exclusion blocked ({self})")
+            return lwarn(f"[Article] Refusing to edit page that has us blocked by exclusion ({self})")
         if INDEV:
             if not (self.Namespace in ["User", "User talk"] and self.Title.find(username) > -1):
                 #Not in bot's user space, and indev, so get out
@@ -371,7 +379,7 @@ class Article: #Creates a class representation of an article to contain function
             return
         if not bypassExclusion and self.HasExclusion():
             #Its been requested we stay away, so we will
-            return lwarn(f"[Article] Refusing to move page that has us exclusion blocked ({self})")
+            return lwarn(f"[Article] Refusing to move page that has us blocked by exclusion ({self})")
         if INDEV:
             if not (self.Namespace in ["User", "User talk"] and self.Title.find(username) > -1):
                 #Not in bot's user space, and indev, so get out
@@ -396,7 +404,7 @@ class Article: #Creates a class representation of an article to contain function
         data = data["query"]["pages"][data["query"]["pageids"][0]]
         return data["links"]
     def GetSubpages(self):
-        return requestapi("get", f"action=query&list=prefixsearch&pslimit=100&pssearch={self.URLTitle}/")["query"]["prefixsearch"]
+        return requestapi("get", f"action=query&list=allpages&aplimit=100&apnamespace={self.NamespaceID}&apprefix={self.StrippedURLTitle}/")["query"]["allpages"]
     def GetTemplates(self):
         if self.Templates != None:
             return self.Templates
