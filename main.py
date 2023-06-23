@@ -75,6 +75,7 @@ lsucc("Finished loading tasks")
 
 #Constant safety checks
 def panicCheck():
+    global username
     expectedTaskCount = threading.active_count()
     while True:
         time.sleep(30)
