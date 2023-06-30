@@ -61,13 +61,19 @@ def safeWriteToFile(filename, content, mode="w", encoding="UTF-8"):
     return True, f"Successfully wrote to {filename}"
 
 _logSession = f"{currentDate()[:10]}.{int(time.time()//1)}"
+_logLocked = False
 def log(content, *, colour="", LogType="Log"):
-    #Manages the writing to a day-based log file for debugging
-    prefixText = f"{LogType} {currentDate()[11:]} - {threading.current_thread().name}"
+    global _logLocked # Prevent thread collisions
+    while _logLocked:
+        time.sleep(0)
+    _logLocked = True
+    #Manages the writing to a log file for debugging
+    prefixText = f"{LogType} {currentDate()} - {threading.current_thread().name}"
     print(f"{colour}[{prefixText}] {content}\033[0m")
     success, result = safeWriteToFile(f"Logs/{_logSession}.log", f"[{prefixText}] {content}\n", "a")
     if not success:
         print(f"\033[41m\033[30m[{prefixText}] Failed to write to log file: {result}\033[0m")
+    _logLocked = False
     return success
 def lerror(content): #Black text, red background
     return log(content, colour="\033[41m\033[30m", LogType="Error")
