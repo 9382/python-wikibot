@@ -546,8 +546,6 @@ def AttemptLogin(name, password):
     global username, userid
     log(f"Attempting to log-in as {name}")
     loginAttempt = CreateAPIFormRequest("action=login", {"lgname":name, "lgpassword":password, "lgtoken":GetTokenForType("login")}, DoAssert=False)["login"]
-    #TODO: Move away from the deprecated "login" and towards "clientlogin"
-    #TODO: Consider adapting botpass instead of straight logging to allow stricter control
     if loginAttempt["result"] != "Success":
         lerror(f"Failed to log-in as {name}. check the password and username are correct")
         return False, None
