@@ -21,7 +21,7 @@ def __main__():
     print("GET CONTENT AND EDIT")
     content = test.GetContent()
     print("content=",content)
-    # test.edit(content+"\nTest edit","Testing botpass")
+    test.edit(content+"\nTest edit","Testing")
 
     print("GET HISTORY")
     for x in test.GetHistory(6):

@@ -98,29 +98,20 @@ class APIException(Exception):
 
 username, userid = None, None
 enwiki = "https://en.wikipedia.org/"
-cookies = {}
+requestSession = requests.Session()
+
+#Central request handler, used for automatically sorting cookies
 def request(method, page, **kwargs):
-    #Central request handler, used for automatically sorting cookies
-    #Currently unused in favour of requestapi, but kept just in case
-    global cookies
     startTime = time.perf_counter()
-    request = getattr(requests, method)(enwiki+page, cookies=cookies, **kwargs)
+    request = getattr(requestSession, method)(page, **kwargs)
     timeTaken = time.perf_counter() - startTime
     if timeTaken > 2.5:
         lwarn(f"[request] Just took {timeTaken}s to complete a single request - are we running alright?")
-    if "set-cookie" in request.headers:
-        setcookies = request.headers["set-cookie"].split(", ")
-        for cookie in setcookies:
-            actualCookie = cookie.split(";")[0]
-            moreInfo = actualCookie.split("=")
-            if moreInfo[0].find(" ") > -1:
-                continue
-            cookies[moreInfo[0]] = "=".join(moreInfo[1:])
-            # print("Set cookie", moreInfo[0], "with value", "=".join(moreInfo[1:]))
     return request
+
+#Similar to request, but also adds some api-specific checks and simplicity
 def requestapi(method, apimethod, DoAssert=True, **kwargs):
-    #Similar to request, but also runs some automatic checks on the return content
-    apirequest = request(method, "w/api.php?"+apimethod+f"&format=json{DoAssert and '&assert=user' or ''}", **kwargs)
+    apirequest = request(method, enwiki+"w/api.php?"+apimethod+f"&format=json{DoAssert and '&assert=user' or ''}", **kwargs)
     data = apirequest.json()
     if "error" in data: #Request failed
         code,info = data["error"]["code"], data["error"]["info"]
@@ -131,8 +122,10 @@ def requestapi(method, apimethod, DoAssert=True, **kwargs):
             lwarn(f"[requestapi] API Request {warntype} warning for query '{apimethod}' - {text['*']}")
     # print("Haha look at me its raw data man for",method,apimethod,data)
     return data
+
 def GetTokenForType(actiontype):
     return requestapi("get", "action=query&meta=tokens&type=*", DoAssert=False)["query"]["tokens"][f"{actiontype}token"]
+
 boundary = "-----------PYB"+str(random.randint(1e9, 9e9)) #Any obscure string works
 log(f"[request] Using boundary {boundary}")
 def CreateAPIFormRequest(location, data, DoAssert=True):
