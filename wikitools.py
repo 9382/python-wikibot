@@ -298,6 +298,8 @@ class Article: #Creates a class representation of an article to contain function
             raise Exception(f"Invalid identifier input '{identifier}'")
         rawData = requestapi("get", f"action=query&prop=info&indexpageids=&intestactions=edit|move&{searchType}={identifier}{FollowRedirects and '&redirects=' or ''}")
         pageInfo = rawData["query"]["pages"][rawData["query"]["pageids"][0]] #Loooovely oneliner, ay?
+        if "invalid" in pageInfo:
+            raise APIException(pageInfo["invalidreason"],"invalidpage")
         self.rawdata = pageInfo
         self.NamespaceID = pageInfo["ns"]
         self.Namespace = GetNamespace(self.NamespaceID)
@@ -548,3 +550,15 @@ def AttemptLogin(name, password):
         lsucc(f"Successfully logged in as {username} (ID {userid})")
         return True, username
 log("WikiTools has loaded")
+
+if __name__ == "__main__":
+    #Interactive mode for quick testing
+    #If intending to use anything request based, AttemptLogin will need doing first due to assert calls
+    while True:
+        code = input("Input code >>> ")
+        try:
+            exec(code,globals(),locals())
+        except BaseException as exc:
+            lerror("Failed to handle custom code input: " + str(exc))
+        else:
+            lsucc("Successfully executed code input")
