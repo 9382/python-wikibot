@@ -152,10 +152,8 @@ def SetStopped(state):
         log(f"Setting panic state to {state}")
     activelyStopped = state
 
-namespaces = ["User", "Wikipedia", "WP", "File", "MediaWiki", "Template", "Help", "Category", "Portal", "Draft", "TimedText", "Module"] #Gadget( definition) is deprecated
-pseudoNamespaces = {"CAT":"Category", "H":"Help", "MOS":"Wikipedia", "WP":"Wikipedia", "WT":"Wikipedia talk",
-                    "Project":"Wikipedia", "Project talk":"Wikipedia talk", "Image":"File", "Image talk":"File talk",
-                    "WikiProject":"Wikipedia", "T":"Template", "MP":"Article", "P":"Portal", "MoS":"Wikipedia"} #Special cases that dont match normal sets
+namespaces = ["User", "Wikipedia", "File", "MediaWiki", "Template", "Help", "Category", "Portal", "Draft", "TimedText", "Module"] #Gadget( definition) is deprecated
+pseudoNamespaces = {"WP":"Wikipedia", "WT":"Wikipedia talk", "Project":"Wikipedia", "Project talk":"Wikipedia talk", "Image":"File", "Image talk":"File talk"} #Special cases that dont match normal sets
 namespaceIDs = {"Article":0, "Talk":1, "User":2, "User talk":3, "Wikipedia":4, "Wikipedia talk":5, "File":6, "File talk":7,
                 "MediaWiki":8, "MediaWiki talk":9, "Template":10, "Template talk":11, "Help":12, "Help talk":13,
                 "Category":14, "Category talk":15, "Portal":100, "Portal talk":101, "Draft":118, "Draft talk":119,
