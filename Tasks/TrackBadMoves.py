@@ -52,6 +52,13 @@ def PostRelevantUpdates():
     #We do it this way to allow a human to essentially intervene and manually declare/undeclare a move as poor
     FlaggedPages = GatherExistingEntries()
     FlaggedPages.extend(PagesToFlag)
+    seenPages = []
+    for page in list(FlaggedPages):
+        logid = page["logid"]
+        if logid in seenPages:
+            FlaggedPages.remove(page)
+        else:
+            seenPages.append(logid)
     pagesDropped = 0
     for page in list(FlaggedPages):
         IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
