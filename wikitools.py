@@ -314,7 +314,7 @@ class Article: #Creates a class representation of an article to contain function
         self.rawdata = pageInfo
         self.NamespaceID = pageInfo["ns"]
         self.Namespace = GetNamespace(self.NamespaceID)
-        self.exists = not "missing" in pageInfo
+        self.Exists = not "missing" in pageInfo
         self.Title = pageInfo["title"]
         self.URLTitle = urllib.parse.quote(self.Title)
         if self.NamespaceID != 0:
@@ -327,7 +327,7 @@ class Article: #Creates a class representation of an article to contain function
         self.WasRedirected = FollowRedirects and "redirects" in rawData["query"]
         self.CanEdit = "edit" in pageInfo["actions"]
         self.CanMove = "move" in pageInfo["actions"]
-        if self.exists:
+        if self.Exists:
             self.PageID = pageInfo["pageid"]
             self.CurrentRevision = pageInfo["lastrevid"]
         else:
@@ -340,7 +340,7 @@ class Article: #Creates a class representation of an article to contain function
         return self.Title
 
     def GetContent(self):
-        if not self.exists:
+        if not self.Exists:
             return
         if self.Content != None:
             return self.Content
@@ -354,11 +354,11 @@ class Article: #Creates a class representation of an article to contain function
         self.Content = data["revisions"][0]["slots"]["main"]["*"] #Idk man
         return self.Content
 
-    def edit(self, newContent, editSummary, *, minorEdit=False, allowPageCreation=True, bypassExclusion=False, markAsBot=True):
+    def Edit(self, newContent, editSummary, *, minorEdit=False, allowPageCreation=True, bypassExclusion=False, markAsBot=True):
         #Edit a page's content, replacing it with newContent
         if HaltIfStopped():
             return
-        if not self.exists and not allowPageCreation:
+        if not self.Exists and not allowPageCreation:
             return lwarn(f"[Article] Refusing to edit article that doesnt exist ({self})")
         if not bypassExclusion and self.HasExclusion():
             #Its been requested we stay away, so we will
@@ -413,7 +413,7 @@ class Article: #Creates a class representation of an article to contain function
             lerror(f"[Article move] Warning: Failed to submit a move request for {self} - {traceback.format_exc()}")
 
     def GetWikiLinks(self):
-        if not self.exists:
+        if not self.Exists:
             return []
         data = requestapi("get", f"action=query&prop=links&indexpageids=&pllimit=200&padeids={self.PageID}")
         data = data["query"]["pages"][data["query"]["pageids"][0]]
@@ -425,7 +425,7 @@ class Article: #Creates a class representation of an article to contain function
     def GetTemplates(self):
         if self.Templates != None:
             return self.Templates
-        if not self.exists:
+        if not self.Exists:
             return []
         templates = []
         textToScan = self.GetContent()
@@ -482,7 +482,7 @@ class Article: #Creates a class representation of an article to contain function
 
     def HasExclusion(self):
         #If the bot is excluded from editing a page, this returns True
-        if not self.exists:
+        if not self.Exists:
             return False
         if not username:
             return True #Shouldn't reach this, but just in case
@@ -516,7 +516,7 @@ def IterateCategory(category, torun):
     if HaltIfStopped():
         return
     catpage = Article(category)
-    if not catpage.exists:
+    if not catpage.Exists:
         return lalert(f"[IterateCategory] Attempted to iterate '{category}' despite it not existing")
     data = requestapi("get", f"action=query&list=categorymembers&cmtype=page&cmlimit=100&cmpageid={catpage.PageID}")
     for page in data["query"]["categorymembers"]:
@@ -539,7 +539,7 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
 
     def update(self):
         Page = Article(self.Page, FollowRedirects=True)
-        if not Page.exists:
+        if not Page.Exists:
             return lalert(f"[WikiConfig] Page {self.Page} doesn't exist")
         else:
             if Page.ContentModel != "json":

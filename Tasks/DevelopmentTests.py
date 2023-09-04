@@ -13,15 +13,15 @@ def __main__():
     lerror("Error")
 
     test = Article(f"User:{username}")
-    print(test,test.exists,test.Namespace,test.Title)
+    print(test,test.Exists,test.Namespace,test.Title)
 
     test = Article(f"User:{username}/A–+- B'\"&?")
-    print(test,test.exists,test.Namespace,test.Title)
+    print(test,test.Exists,test.Namespace,test.Title)
 
     print("GET CONTENT AND EDIT")
     content = test.GetContent()
     print("content=",content)
-    test.edit(content+"\nTest edit","Testing")
+    test.Edit(content+"\nTest edit","Testing")
 
     print("GET HISTORY")
     for x in test.GetHistory(6):

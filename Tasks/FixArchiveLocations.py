@@ -40,7 +40,7 @@ def DetermineBadMove(page):
         if wasMoved and revision.Age < 86400*Config.get("MoveCheckTimeLimit"):
             log(f"Examining the move from {revision.Timestamp} by {revision.User}")
             prevPage = Article(From)
-            if not prevPage.exists:
+            if not prevPage.Exists:
                 return MarkUnsafe(currentLocation, "Origin page of the move doesn't exist")
 
             #At this point, we should be happy enough to go ahead and move pages
@@ -59,7 +59,7 @@ def DetermineBadMove(page):
             for subpage in articleSubpages:
                 if not subpage.Title.startswith(prevPage.Title+"/Archive"):
                     #If the page is not an archive, to avoid the "Subpage of A/B listed under A" situation, ensure the page doesnt have a non-talk version
-                    if subpage.GetLinkedPage().exists:
+                    if subpage.GetLinkedPage().Exists:
                         return MarkUnsafe(currentLocation, "Some subpages didn't meet the move criteria")
                 if not subpage.CanMove:
                     #If we can't move one of the subpages for any reason (titleblacklist, protection, etc.), dont move any
@@ -105,13 +105,13 @@ def CheckArchiveLocations(page):
 
                         #Verify this archive is valid by checking if it exists
                         archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
-                        if not archivePage.exists or archivePage.IsRedirect:
+                        if not archivePage.Exists or archivePage.IsRedirect:
                             #At this point, we attempt to move pages from the old name, in case the mover just happened to forget
                             lwarn(f"{currentLocation} failed safety check (Missing expected archives), checking previous pages")
                             wasFixed = DetermineBadMove(page)
                             if wasFixed: #Final confirmation that the fix worked
                                 archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
-                                if archivePage.exists and not archivePage.IsRedirect:
+                                if archivePage.Exists and not archivePage.IsRedirect:
                                     lsucc("Fixing archive location now that subpages have been moved")
                                     template.ChangeKeyData("archive", newArchive)
                                     content = content.replace(template.Original, template.Text)
@@ -138,7 +138,7 @@ def CheckArchiveLocations(page):
                 MarkUnsafe(currentLocation, "No archive key present")
                 break
     if content != page.GetContent():
-        page.edit(content, f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])", minorEdit=True)
+        page.Edit(content, f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])", minorEdit=True)
 
 def __main__():
     # CheckArchiveLocations(Article(f"User:{username}/encoded–title"))
@@ -158,12 +158,12 @@ def __main__():
             else:
                 log("Finished cycle")
                 if len(unsafeCases) == 0:
-                    Article(f"User:{username}/FixArchiveLocations/report").edit("No problems", "[Task 2] No problems")
+                    Article(f"User:{username}/FixArchiveLocations/report").Edit("No problems", "[Task 2] No problems")
                 else:
                     problematicList = ""
                     for page, reason in unsafeCases.items():
                         problematicList += f"\n* [[:{page}]] - {reason}"
-                    Article(f"User:{username}/FixArchiveLocations/report").edit(f"Encountered some issues with archives on the following pages:{problematicList}", f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
+                    Article(f"User:{username}/FixArchiveLocations/report").Edit(f"Encountered some issues with archives on the following pages:{problematicList}", f"[Task 2] Requesting help on {len(unsafeCases)} page(s)")
             unsafeCases.clear()
         else:
             time.sleep(1)

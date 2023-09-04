@@ -17,9 +17,9 @@ CheckedLogs = set()
 def DetermineIfMoveIsPoor(oldpage, newpage):
     OldPage = Article(oldpage)
     NewPage = Article(newpage)
-    if not NewPage.exists:
+    if not NewPage.Exists:
         return False, 2
-    if not NewPage.GetLinkedPage().exists: #Confusing move, dont touch
+    if not NewPage.GetLinkedPage().Exists: #Confusing move, dont touch
         return False, 3
     if not OldPage.IsRedirect: #Move reverted in some way
         return False, 4
@@ -29,7 +29,7 @@ def DetermineIfMoveIsPoor(oldpage, newpage):
         NonRedirects = []
         for subpage in OldSubpages:
             subpageobj = Article(subpage)
-            if not subpageobj.IsRedirect and not subpageobj.GetLinkedPage().exists:
+            if not subpageobj.IsRedirect and not subpageobj.GetLinkedPage().Exists:
                 NonRedirects.append(subpageobj)
         if len(NonRedirects) > 0: #At least 1 non-redirect page left behind
             for subpage in NewPage.GetSubpages():
@@ -100,7 +100,7 @@ def PostRelevantUpdates():
     elif pagesAdded > 1:
         editSummary += f" | {pagesAdded} pages added"
 
-    reportPage.edit(headerText+output, editSummary)
+    reportPage.Edit(headerText+output, editSummary)
 
 def PerformLogCheck():
     global PagesToCheck
