@@ -84,10 +84,12 @@ def lwarn(content): #Yellow text
 def lsucc(content): #Green text
     return log(content, colour="\033[32m", LogType="Success")
 
+
 if SUBMITEDITS:
     log("SUBMITEDITS is set to True. Edits will actually be made")
 else:
     log("SUBMITEDITS is set to False. Edits will not be requested, only simulated")
+
 
 class APIException(Exception):
     def __init__(self, message, code):
@@ -95,6 +97,7 @@ class APIException(Exception):
         self.code = code
     def __str__(self):
         return f"{self.code}: {self.message}"
+
 
 username, userid = None, None
 enwiki = "https://en.wikipedia.org/"
@@ -109,6 +112,7 @@ def request(method, page, **kwargs):
         lwarn(f"[request] Just took {timeTaken}s to complete a single request - are we running alright?")
     return request
 
+
 #Similar to request, but also adds some api-specific checks and simplicity
 def requestapi(method, apimethod, DoAssert=True, **kwargs):
     apirequest = request(method, enwiki+"w/api.php?"+apimethod+f"&format=json{DoAssert and '&assert=user' or ''}", **kwargs)
@@ -122,9 +126,9 @@ def requestapi(method, apimethod, DoAssert=True, **kwargs):
             lwarn(f"[requestapi] API Request {warntype} warning for query '{apimethod}' - {text['*']}")
     # print("Haha look at me its raw data man for",method,apimethod,data)
     return data
-
 def GetTokenForType(actiontype):
     return requestapi("get", "action=query&meta=tokens&type=*", DoAssert=False)["query"]["tokens"][f"{actiontype}token"]
+
 
 boundary = "-----------PYB"+str(random.randint(1e9, 9e9)) #Any obscure string works
 log(f"[request] Using boundary {boundary}")
@@ -151,6 +155,7 @@ def SetStopped(state):
     if state != activelyStopped:
         log(f"Setting panic state to {state}")
     activelyStopped = state
+
 
 namespaces = ["User", "Wikipedia", "File", "MediaWiki", "Template", "Help", "Category", "Portal", "Draft", "TimedText", "Module"] #Gadget( definition) is deprecated
 pseudoNamespaces = {"WP":"Wikipedia", "WT":"Wikipedia talk", "Project":"Wikipedia", "Project talk":"Wikipedia talk",
@@ -188,6 +193,7 @@ def StripNamespace(articlename):
     else:
         return articlename[len(namespace)+1:]
 
+
 def SubstituteIntoString(wholestr, substitute, start, end):
     return wholestr[:start]+substitute+wholestr[end:]
 class Template: #Parses a template and returns a class object representing it
@@ -213,6 +219,7 @@ class Template: #Parses a template and returns a class object representing it
             else: #Key specified
                 args[key.strip()] = item.strip()
         self.Args = args
+
     #The functions below are designed to respect the original template's format (E.g. its spacing)
     #Simply use the below functions, and then ask for self.Text for the new representation to use
     #TODO: Re-code the below, because its bloody stupid and has problems (we use regex?? why not just store whitespace seperately???)
@@ -227,6 +234,7 @@ class Template: #Parses a template and returns a class object representing it
         keylocation = regex.compile(f"\| *{key} *=").search(self.Text)
         keytext = keylocation.group()
         self.Text = SubstituteIntoString(self.Text, keytext.replace(key, newkey), *keylocation.span())
+
     def ChangeKeyData(self, key, newdata): #Changes the contents of the key
         #NOTE: THIS CURRENTLY ASSUMES YOU ARE NOT ATTEMPTING TO CHANGE AN UNKEY'D NUMERICAL INDEX
         if type(key) == int or key.isnumeric():
@@ -238,6 +246,7 @@ class Template: #Parses a template and returns a class object representing it
         keylocation = regex.compile(f"\| *{key} *=").search(self.Text)
         target = self.Text[keylocation.start()+1:].split("|")[0]
         self.Text = SubstituteIntoString(self.Text, target.replace(olddata, newdata), keylocation.start()+1, keylocation.start()+len(target)+1)
+
 
 revisionMoveRegex = regex.compile('^(.+?) moved page \[\[([^\]]+)\]\] to \[\[([^\]]+)\]\]')
 class Revision: #For getting the history of pages
@@ -257,6 +266,7 @@ class Revision: #For getting the history of pages
         self.IsMinor = "minor" in data
         self.IsIP = "anon" in data
         self.IsSuppressed = "suppressed" in data
+
     def IsMove(self):
         #Returns wasMoved, From, To
         #This will ignore move revisions that created a page by placing redirect categories (the page left behind)
@@ -265,6 +275,7 @@ class Revision: #For getting the history of pages
             if moveData and moveData.group(1) == self.User:
                 return True, moveData.group(2), moveData.group(3)
         return False, None, None
+
 
 def CheckActionCount():
     global lastActionTime
@@ -281,6 +292,7 @@ def CheckActionCount():
         while time.time()-lastActionTime < APS:
             time.sleep(.2)
     lastActionTime = time.time()
+
 
 bracketbalancereg = regex.compile('{{|}}') #For template processing
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
@@ -326,6 +338,7 @@ class Article: #Creates a class representation of an article to contain function
         self.Templates = None
     def __str__(self):
         return self.Title
+
     def GetContent(self):
         if not self.exists:
             return
@@ -340,6 +353,7 @@ class Article: #Creates a class representation of an article to contain function
         data = data["query"]["pages"][data["query"]["pageids"][0]]
         self.Content = data["revisions"][0]["slots"]["main"]["*"] #Idk man
         return self.Content
+
     def edit(self, newContent, editSummary, *, minorEdit=False, allowPageCreation=True, bypassExclusion=False, markAsBot=True):
         #Edit a page's content, replacing it with newContent
         if HaltIfStopped():
@@ -397,14 +411,17 @@ class Article: #Creates a class representation of an article to contain function
             return CreateAPIFormRequest("action=move", formData)
         except Exception as exc:
             lerror(f"[Article move] Warning: Failed to submit a move request for {self} - {traceback.format_exc()}")
+
     def GetWikiLinks(self):
         if not self.exists:
             return []
         data = requestapi("get", f"action=query&prop=links&indexpageids=&pllimit=200&padeids={self.PageID}")
         data = data["query"]["pages"][data["query"]["pageids"][0]]
         return data["links"]
+
     def GetSubpages(self):
         return requestapi("get", f"action=query&list=allpages&aplimit=100&apnamespace={self.NamespaceID}&apprefix={self.StrippedURLTitle}/")["query"]["allpages"]
+
     def GetTemplates(self):
         if self.Templates != None:
             return self.Templates
@@ -434,6 +451,7 @@ class Article: #Creates a class representation of an article to contain function
                     break #Unfinished template, ignore it
         self.Templates = templates
         return self.Templates
+
     def GetLinkedPage(self):
         #Article gets Talk, Talk gets Article, you get the idea
         ID = self.NamespaceID
@@ -445,6 +463,7 @@ class Article: #Creates a class representation of an article to contain function
             return Article(GetNamespace(ID+1) + ":" + StripNamespace(self.Title))
         else:
             return Article(GetNamespace(ID-1) + ":" + StripNamespace(self.Title))
+
     def GetHistory(self, limit=50, getContent=False):
         properties = "ids|timestamp|user|comment|flags|size"
         if getContent:
@@ -460,6 +479,7 @@ class Article: #Creates a class representation of an article to contain function
             else:
                 revisions.append(Revision(revision))
         return revisions
+
     def HasExclusion(self):
         #If the bot is excluded from editing a page, this returns True
         if not self.exists:
@@ -490,6 +510,7 @@ class Article: #Creates a class representation of an article to contain function
                             return False
                 log("[Article] Exclusion check has managed to not hit a return, which is very odd")
 
+
 def IterateCategory(category, torun):
     #Iterates all wikilinks of a category, even if multi-paged
     if HaltIfStopped():
@@ -509,11 +530,13 @@ def IterateCategory(category, torun):
             torun(Article(page["pageid"]))
         cmcontinue = "continue" in data and data["continue"]["cmcontinue"]
 
+
 class WikiConfig: #Handles the fetching of configs from on-wiki locations
     def __init__(self, page, defaultConfig):
         self.Page = page
         self.Config = defaultConfig
         self.update()
+
     def update(self):
         Page = Article(self.Page, FollowRedirects=True)
         if not Page.exists:
@@ -531,10 +554,12 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
                     if self.Config[key] != value:
                         log(f"[WikiConfig] '{key}' in config {self.Page} was changed to '{value}'")
                         self.Config[key] = value
+
     def get(self, key):
         if key in self.Config:
             return self.Config[key]
         return None
+
 
 def AttemptLogin(name, password):
     global username, userid
@@ -548,7 +573,10 @@ def AttemptLogin(name, password):
         userid = loginAttempt["lguserid"]
         lsucc(f"Successfully logged in as {username} (ID {userid})")
         return True, username
+
+
 log("WikiTools has loaded")
+
 
 if __name__ == "__main__":
     #Interactive mode for quick testing
