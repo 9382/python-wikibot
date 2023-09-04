@@ -32,7 +32,8 @@ def BeginTaskCycle(func, funcName=None):
             func() #Begin task cycle
         except (requests.ConnectionError, requests.Timeout) as exc:
             #Revive threads that died due to connection errors
-            lerror(f"[Tasks] Function {funcName} just threw a timeout error: {exc}")
+            lerror(f"[Tasks] Function {funcName} just threw a timeout error: {exc}\nThis thread will restart soon...")
+            time.sleep(10)
             continue
         except BaseException as exc:
             lerror(f"[Tasks] Function {funcName} just threw a critical (not request based) error: {traceback.format_exc()}\nThis thread will restart in 15 minutes...")
