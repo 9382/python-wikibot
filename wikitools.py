@@ -355,7 +355,7 @@ class Article: #Creates a class representation of an article to contain function
         self.Content = data["revisions"][0]["slots"]["main"]["*"] #Idk man
         return self.Content
 
-    def CanEdit(self, *, allowPageCreation=True, bypassExclusion=False):
+    def CanEditWithConditions(self, *, allowPageCreation=True, bypassExclusion=False):
         if not self.Exists and not allowPageCreation:
             return False, "Will only edit the page if it already exists"
         if not bypassExclusion and self.HasExclusion():
@@ -365,7 +365,7 @@ class Article: #Creates a class representation of an article to contain function
         #Edit a page's content, replacing it with newContent
         if HaltIfStopped():
             return
-        success, result = self.CanEdit(allowPageCreation=allowPageCreation, bypassExclusion=bypassExclusion)
+        success, result = self.CanEditWithConditions(allowPageCreation=allowPageCreation, bypassExclusion=bypassExclusion)
         if not success:
             lwarn(f"[Article] Refusing to edit page ({self}): {result}")
             return
