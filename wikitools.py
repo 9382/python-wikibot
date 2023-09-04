@@ -250,9 +250,10 @@ class Template: #Parses a template and returns a class object representing it
 
 revisionMoveRegex = regex.compile('^(.+?) moved page \[\[([^\]]+)\]\] to \[\[([^\]]+)\]\]')
 class Revision: #For getting the history of pages
-    def __init__(self, data, diff=None):
+    def __init__(self, data, PageTitle, diff=None):
         self.ID = data["revid"]
         self.ParentID = data["parentid"]
+        self.PageTitle = PageTitle
         self.User = ("userhidden" in data and "< User hidden >") or data["user"]
         self.Timestamp = data["timestamp"][:-1] #Strip the ending Z for datetime
         self.Date = datetime.datetime.fromisoformat(self.Timestamp)
@@ -269,11 +270,12 @@ class Revision: #For getting the history of pages
 
     def IsMove(self):
         #Returns wasMoved, From, To
-        #This will ignore move revisions that created a page by placing redirect categories (the page left behind)
-        if self.SizeChange == 0:
-            moveData = revisionMoveRegex.search(self.Comment)
-            if moveData and moveData.group(1) == self.User:
-                return True, moveData.group(2), moveData.group(3)
+        #Determines if it was a move by trying to find a matching move log involving this title in some way
+        LogData = requestapi("get", f"action=query&list=logevents&letype=move&lestart={self.Timestamp}&leend={self.Timestamp}")
+        LogEvents = LogData["query"]["logevents"]
+        for event in LogEvents:
+            if event["title"] == self.PageTitle or event["params"]["target_title"] == self.PageTitle:
+                return True, event["title"], event["params"]["target_title"]
         return False, None, None
 
 
@@ -475,9 +477,9 @@ class Article: #Creates a class representation of an article to contain function
             revision = data["revisions"][i]
             if i != len(data["revisions"])-1:
                 child = data["revisions"][i+1]
-                revisions.append(Revision(revision, revision["size"] - child["size"]))
+                revisions.append(Revision(revision, self.Title, revision["size"] - child["size"]))
             else:
-                revisions.append(Revision(revision))
+                revisions.append(Revision(revision, self.Title))
         return revisions
 
     def HasExclusion(self):
