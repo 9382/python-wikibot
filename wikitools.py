@@ -248,7 +248,6 @@ class Template: #Parses a template and returns a class object representing it
         self.Text = SubstituteIntoString(self.Text, target.replace(olddata, newdata), keylocation.start()+1, keylocation.start()+len(target)+1)
 
 
-revisionMoveRegex = regex.compile('^(.+?) moved page \[\[([^\]]+)\]\] to \[\[([^\]]+)\]\]')
 class Revision: #For getting the history of pages
     def __init__(self, data, PageTitle, diff=None):
         self.ID = data["revid"]
@@ -356,15 +355,20 @@ class Article: #Creates a class representation of an article to contain function
         self.Content = data["revisions"][0]["slots"]["main"]["*"] #Idk man
         return self.Content
 
+    def CanEdit(self, *, allowPageCreation=True, bypassExclusion=False):
+        if not self.Exists and not allowPageCreation:
+            return False, "Will only edit the page if it already exists"
+        if not bypassExclusion and self.HasExclusion():
+            return False, "The page has relevant bot exclusion"
+        return self.CanEdit, "The API told us we can't edit the page"
     def Edit(self, newContent, editSummary, *, minorEdit=False, allowPageCreation=True, bypassExclusion=False, markAsBot=True):
         #Edit a page's content, replacing it with newContent
         if HaltIfStopped():
             return
-        if not self.Exists and not allowPageCreation:
-            return lwarn(f"[Article] Refusing to edit article that doesnt exist ({self})")
-        if not bypassExclusion and self.HasExclusion():
-            #Its been requested we stay away, so we will
-            return lwarn(f"[Article] Refusing to edit page that has us blocked by exclusion ({self})")
+        success, result = self.CanEdit(allowPageCreation=allowPageCreation, bypassExclusion=bypassExclusion)
+        if not success:
+            lwarn(f"[Article] Refusing to edit page ({self}): {result}")
+            return
         if INDEV:
             if not (self.Namespace in ["User", "User talk"] and self.Title.find(username) > -1):
                 #Not in bot's user space, and indev, so get out
@@ -388,14 +392,28 @@ class Article: #Creates a class representation of an article to contain function
             return CreateAPIFormRequest("action=edit", formData)
         except Exception as exc:
             lerror(f"[Article edit] Warning: Failed to submit an edit request for {self} - {traceback.format_exc()}")
-    def MoveTo(self, newPage, reason, *, leaveRedirect=True, bypassExclusion=False):
+
+    def CanMoveTo(self, newPage, *, bypassExclusion=False, checkTarget=True):
+        if not bypassExclusion and self.HasExclusion():
+            return False, "The page has relevant bot exclusion"
+        if checkTarget:
+            newPageObj = Article(newPage)
+            if newPageObj.Exists:
+                quickHistory = newPageObj.GetHistory(2)
+                if len(quickHistory) == 2 or not quickHistory[0].IsMove():
+                    return False, "There exists a target page which likely can not be overwritten"
+            if not newPageObj.CanEdit:
+                return False, "The API told us the target page is no good (probably title blacklist)"
+        return self.CanMove, "The API told us we can't move the page"
+    def MoveTo(self, newPage, reason, *, leaveRedirect=True, bypassExclusion=False, checkTarget=True):
         #Move the page from its current location to a new one
         #Avoid supressing redirects unless necessary
         if HaltIfStopped():
             return
-        if not bypassExclusion and self.HasExclusion():
-            #Its been requested we stay away, so we will
-            return lwarn(f"[Article] Refusing to move page that has us blocked by exclusion ({self})")
+        success, result = self.CanMoveTo(newPage, bypassExclusion=bypassExclusion, checkTarget=checkTarget)
+        if not success:
+            lwarn(f"[Article] Refusing to move page ({self}) to its target ({newPage}): {result}")
+            return
         if INDEV:
             if not (self.Namespace in ["User", "User talk"] and self.Title.find(username) > -1):
                 #Not in bot's user space, and indev, so get out
@@ -534,10 +552,11 @@ def IterateCategory(category, torun):
 
 
 class WikiConfig: #Handles the fetching of configs from on-wiki locations
-    def __init__(self, page, defaultConfig):
+    def __init__(self, page, defaultConfig, *, immediatelyUpdate=True):
         self.Page = page
         self.Config = defaultConfig
-        self.update()
+        if immediatelyUpdate:
+            self.update()
 
     def update(self):
         Page = Article(self.Page, FollowRedirects=True)
@@ -583,6 +602,7 @@ log("WikiTools has loaded")
 if __name__ == "__main__":
     #Interactive mode for quick testing
     #If intending to use anything request based, AttemptLogin will need doing first due to assert calls
+    log("Currently in the WikiTools CLI mode. Make sure to log-in (AttemptLogin) to work around assert=user calls")
     while True:
         code = input("Input code >>> ")
         try:

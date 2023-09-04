@@ -6,8 +6,8 @@ def __main__():
     print("username", username, "userid", userid)
 
     """ General tests """
-    lsucc("Success")
     log("Log")
+    lsucc("Success")
     lwarn("Warn")
     lalert("Alert")
     lerror("Error")
@@ -21,7 +21,9 @@ def __main__():
     print("GET CONTENT AND EDIT")
     content = test.GetContent()
     print("content=",content)
-    test.Edit(content+"\nTest edit","Testing")
+    # test.Edit(content+"\nTest edit","Testing")
+
+    print("canmoveto badtitle", test.CanMoveTo(f"User:{username}/''''''"))
 
     print("GET HISTORY")
     for x in test.GetHistory(6):
@@ -39,7 +41,7 @@ def __main__():
         "Value1": False,
         "Value2": "Stringg",
         "Value3": 2839
-    })
+    }, immediatelyUpdate=False)
     print("Config round 1", Config.get("Value1"), Config.get("Value2"), Config.get("Value3"), Config.get("Value4"))
     Config.update()
     print("Config round 2", Config.get("Value1"), Config.get("Value2"), Config.get("Value3"), Config.get("Value4"))
