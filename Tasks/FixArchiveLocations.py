@@ -61,11 +61,11 @@ def DetermineBadMove(page):
                     #If the page is not an archive, to avoid the "Subpage of A/B listed under A" situation, ensure the page doesnt have a non-talk version
                     if subpage.GetLinkedPage().Exists:
                         return MarkUnsafe(currentLocation, "Some subpages didn't meet the move criteria")
-                if not subpage.CanMove:
+                newLocation = currentLocation+subpage.Title[len(prevPage.Title):]
+                success, result = subpage.CanMoveTo(newLocation)
+                if not success:
                     #If we can't move one of the subpages for any reason (titleblacklist, protection, etc.), dont move any
-                    return MarkUnsafe(currentLocation, "Some subpages can't be moved")
-                if subpage.HasExclusion():
-                    return MarkUnsafe(currentLocation, "At least one subpage has bot exclusion")
+                    return MarkUnsafe(currentLocation, f"At least one subpage can't be moved: {result}")
 
             #All cool, go ahead and move (just make sure it happened a bit ago)
             if revision.Age < 3600*Config.get("TimeUntilMoveAction"):
