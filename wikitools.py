@@ -247,12 +247,11 @@ class Template: #Parses a template and returns a class object representing it
         target = self.Text[keylocation.start()+1:].split("|")[0]
         self.Text = SubstituteIntoString(self.Text, target.replace(olddata, newdata), keylocation.start()+1, keylocation.start()+len(target)+1)
 
-
+revisionMoveRegex = regex.compile('^(.+?) moved page \[\[([^\]]+)\]\] to \[\[([^\]]+)\]\]')
 class Revision: #For getting the history of pages
-    def __init__(self, data, PageTitle, diff=None):
+    def __init__(self, data, diff=None):
         self.ID = data["revid"]
         self.ParentID = data["parentid"]
-        self.PageTitle = PageTitle
         self.User = ("userhidden" in data and "< User hidden >") or data["user"]
         self.Timestamp = data["timestamp"][:-1] #Strip the ending Z for datetime
         self.Date = datetime.datetime.fromisoformat(self.Timestamp)
@@ -269,12 +268,12 @@ class Revision: #For getting the history of pages
 
     def IsMove(self):
         #Returns wasMoved, From, To
-        #Determines if it was a move by trying to find a matching move log involving this title in some way
-        LogData = requestapi("get", f"action=query&list=logevents&letype=move&lestart={self.Timestamp}&leend={self.Timestamp}")
-        LogEvents = LogData["query"]["logevents"]
-        for event in LogEvents:
-            if event["title"] == self.PageTitle or event["params"]["target_title"] == self.PageTitle:
-                return True, event["title"], event["params"]["target_title"]
+        #Based off of the edit summary and the change in size of the page
+        #Can technically be fooled, but it's so unlikely, and shouldn't be a major consequence regardless (hopefully)
+        moveData = revisionMoveRegex.search(self.Comment)
+        if moveData and moveData.group(1) == self.User:
+            if self.SizeChange == 0 or self.SizeChange == 61+len(moveData.group(3).encode("utf-8")):
+                return True, moveData.group(2), moveData.group(3)
         return False, None, None
 
 
@@ -476,7 +475,7 @@ class Article: #Creates a class representation of an article to contain function
         #Article gets Talk, Talk gets Article, you get the idea
         ID = self.NamespaceID
         if ID < 0: #Special pages have no talk
-            return self
+            return Article(self.Title)
         elif ID == 1: #Special case for converting from Talk: to article space
             return Article(StripNamespace(self.Title))
         elif ID % 2 == 0:
@@ -495,9 +494,9 @@ class Article: #Creates a class representation of an article to contain function
             revision = data["revisions"][i]
             if i != len(data["revisions"])-1:
                 child = data["revisions"][i+1]
-                revisions.append(Revision(revision, self.Title, revision["size"] - child["size"]))
+                revisions.append(Revision(revision, revision["size"] - child["size"]))
             else:
-                revisions.append(Revision(revision, self.Title))
+                revisions.append(Revision(revision))
         return revisions
 
     def HasExclusion(self):
