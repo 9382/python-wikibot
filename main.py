@@ -107,7 +107,7 @@ def panicCheck():
                 SetStopped(True)
         else:
             panic = Article(f"User:{username}/panic")
-            if panic.exists:
+            if panic.Exists:
                 if panic.GetContent().strip().lower() == "true":
                     SetStopped(True)
                 else:
