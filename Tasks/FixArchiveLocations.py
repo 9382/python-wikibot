@@ -30,8 +30,8 @@ def DetermineBadMove(page):
         wasMoved, From, To = revision.IsMove()
         if wasMoved and revision.Age < 86400*Config.get("MoveWarTimeLimit"):
             recentMoves += 1
-    if recentMoves >= Config.get("MoveWarLimit"):
-        return MarkUnsafe(currentLocation, f"Page could be undergoing a move war ({recentMoves} recent moves), not participating")
+            if recentMoves >= Config.get("MoveWarLimit"):
+                return MarkUnsafe(currentLocation, f"Page could be undergoing a move war ({recentMoves} recent moves), not participating")
 
     #Otherwise, scan the history
     #The script checks only the most recent move, and no further
