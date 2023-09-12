@@ -6,6 +6,8 @@ import datetime
 import time
 import math
 
+username, userid = GetSelf()
+
 Config = WikiConfig(f"User:{username}/TrackBadMoves/config", {
     "CheckBufferTime": 10
 })

@@ -3,6 +3,7 @@
 from wikitools import *
 
 def __main__():
+    username, userid = GetSelf()
     print("username", username, "userid", userid)
 
     """ General tests """

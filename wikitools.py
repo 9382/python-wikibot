@@ -4,7 +4,7 @@
 __all__ = [
         "log", "lerror", "lalert", "lwarn", "lsucc",
         "Article", "Template", "Revision", "IterateCategory", "WikiConfig", "APIException",
-        "username", "userid", "AttemptLogin", "CheckIfStopped", "HaltIfStopped", "SetStopped",
+        "GetSelf", "AttemptLogin", "CheckIfStopped", "HaltIfStopped", "SetStopped",
         "requestapi", "CreateAPIFormRequest" #Avoid using these directly unless required
 ]
 
@@ -580,6 +580,9 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
             return self.Config[key]
         return None
 
+
+def GetSelf():
+    return username, userid
 
 def AttemptLogin(name, password):
     global username, userid

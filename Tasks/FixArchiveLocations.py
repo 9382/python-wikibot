@@ -6,6 +6,8 @@ import traceback
 import datetime
 import time
 
+username, userid = GetSelf()
+
 Config = WikiConfig(f"User:{username}/FixArchiveLocations/config", {
     "MoveWarLimit": 3,
     "MoveWarTimeLimit": 28,
