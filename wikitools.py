@@ -88,7 +88,8 @@ def lsucc(content): #Green text
 if SUBMITEDITS:
     log("SUBMITEDITS is set to True. Edits will actually be made")
 else:
-    log("SUBMITEDITS is set to False. Edits will not be requested, only simulated")
+    EditLog = open("EditLog.txt", "w", encoding="utf-8")
+    log("SUBMITEDITS is set to False. Edits will not be requested, only simulated and logged")
 
 
 class APIException(Exception):
@@ -374,11 +375,13 @@ class Article: #Creates a class representation of an article to contain function
                 lwarn(f"[Article] Attempted to push edit to a space other than our own while in development mode ({self})")
                 return False
             editSummary += ") (INDEV"
+        CheckActionCount()
         if not SUBMITEDITS:
             # open(urllib.parse.quote(self.Title).replace("/", "slash")+".txt", "w").write(newContent)
+            EditLog.write(f"Tried to edit {self} with the summary {editSummary}\n")
+            EditLog.flush()
             return lwarn(f"[Article] Not submitting edit to {self} with summary '{editSummary}' as SUBMITEDITS is set to False")
         #All of our customary checks are done, now we actually start trying to edit the page
-        CheckActionCount()
         log(f"Making edits to {self}:\n    {editSummary}")
         formData = {"pageid":self.PageID, "text":newContent, "summary":editSummary, "token":GetTokenForType("csrf"), "baserevid":self.CurrentRevision}
         if minorEdit:
@@ -418,10 +421,12 @@ class Article: #Creates a class representation of an article to contain function
                 #Not in bot's user space, and indev, so get out
                 return lwarn(f"[Article] Attempted to move a page in a space other than our own while in development mode ({self})")
             reason += ") (INDEV"
+        CheckActionCount()
         if not SUBMITEDITS:
+            EditLog.write(f"Tried to move {self} to {newPage} with the summary {reason}\n")
+            EditLog.flush()
             return lwarn(f"[Article] Not moving {self} to {newPage} with summary '{reason}' as SUBMITEDITS is set to False")
         #All our customary checks are done, begin the process of actually moving
-        CheckActionCount()
         log(f"Moving {self} to {newPage}{leaveRedirect==False and ' (Redirect supressed)' or ''}:\n    {reason}")
         formData = {"fromid":self.PageID, "to":newPage, "reason":reason, "token":GetTokenForType("csrf")}
         if not leaveRedirect:
