@@ -23,6 +23,7 @@ CANT_FIX = 3 # Technical issue preventing a fix entirely
 IS_FIXED = 4 # Nothing to do here
 
 def CalculateSubpageFixability(OldPage, NewPage):
+    print("CalculateSubpageFixability", OldPage, NewPage)
     if not OldPage.IsRedirect:
         return WONT_FIX, "The old page is no longer a redirect"
     if NewPage.IsRedirect:
@@ -115,12 +116,15 @@ def FixPageTemplates(OldPage, NewPage):
         return IS_FIXED, Content
 
 
+LocalEditTrack = 0 #I want our 50th edit to be the report updating
 def ConsiderFixingPages(PageSet):
+    global LocalEditTrack
     BadPages = []
     for item in list(PageSet):
         MoveData, PendingMoves = item #magical python unpacking
         OldPage = MoveData["oldpage_article"]
         NewPage = MoveData["newpage_article"]
+        print("ConsiderFixingPages", OldPage, NewPage)
         Status, NewContent = FixPageTemplates(OldPage, NewPage)
         if Status == WONT_FIX or Status == CANT_FIX:
             # Template sorting has gone wrong, dont continue further!
@@ -130,16 +134,20 @@ def ConsiderFixingPages(PageSet):
         # Check how long its been
         if datetime.datetime.utcnow().timestamp() > MoveData["logtime"] + 86400*Config.get("DaysUntilFix"):
             # Handle the subpages
+            if len(PendingMoves.keys()) + (Status == WILL_FIX and 1 or 0) > 49-LocalEditTrack:
+                print("not fixing because we hit an edit count limit")
+                continue #TEMPORARY EDIT COUNT ENFORCER
             for OldSubpage, NewSubpage in PendingMoves.items():
-                OldSubpage.MoveTo(NewSubpage, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Move subpage left behind during move of parent page ([[User talk:{username}|Report bot issues]])", checkTarget=False) #already checked target
+                OldSubpage.MoveTo(NewSubpage, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]]) (Move subpage left behind during move of parent page ([[User talk:{username}|Report bot issues]])", checkTarget=False) #already checked target
+                LocalEditTrack = LocalEditTrack + 1
             # And then apply template fixes
             if Status == WILL_FIX:
                 log(f"Fixing {MoveData['oldpage']} required editing some templates")
-                NewPage.Edit(NewContent, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Update archiving templates after a page move ([[User talk:{username}|Report bot issues]])")
+                NewPage.Edit(NewContent, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]]) (Update archiving templates after a page move ([[User talk:{username}|Report bot issues]])")
+                LocalEditTrack = LocalEditTrack + 1
             PageSet.remove(item)
         else:
             pass # Just hold on a bit, dont fix it just yet
-
     return BadPages
 
 
@@ -213,7 +221,7 @@ def PostRelevantUpdates():
     else:
         headerText = existingContent[:existingContent.find(editMarker)+len(editMarker)+1]
 
-    editSummary = f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Update report | {len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)} entries"
+    editSummary = f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]]) (Update report | {len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)} entries"
 
     reportPage.Edit(headerText+output, editSummary)
 
