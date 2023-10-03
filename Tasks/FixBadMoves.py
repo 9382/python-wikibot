@@ -95,7 +95,7 @@ def FixPageTemplates(OldPage, NewPage):
             else: #more missing required arguments
                 return WONT_FIX, "User:HBC Archive Indexerbot/OptIn"
 
-        elif TemplateName.lower() == "user: cluebot iii/archivethis":
+        elif TemplateName.lower() == "user:cluebot iii/archivethis":
             #Fix for ClueBot III
             if "archiveprefix" in Template.Args:
                 archiveprefix = Template.Args["archiveprefix"]
@@ -185,8 +185,7 @@ def PostRelevantUpdates():
         newpage  = page['newpage']
         subpages = str(page['subpages'])
         logtime  = str(datetime.datetime.fromtimestamp(page['logtime']))
-        problem  = ""
-        output = output + f"|-\n{{{{/entry|oldpage={oldpage}|newpage={newpage}|subpages={subpages}|logtime={logtime}|problem={problem}}}}}\n"
+        output = output + f"|-\n{{{{/entry|oldpage={oldpage}|newpage={newpage}|subpages={subpages}|logtime={logtime}|problem=}}}}\n"
     output = output + "|-\n! colspan=6 | Requires human attention\n"
     for item in Pages_wontfix:
         page = item[0]
