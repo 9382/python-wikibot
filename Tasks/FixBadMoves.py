@@ -131,11 +131,11 @@ def ConsiderFixingPages(PageSet):
         if datetime.datetime.utcnow().timestamp() > MoveData["logtime"] + 86400*Config.get("DaysUntilFix"):
             # Handle the subpages
             for OldSubpage, NewSubpage in PendingMoves.items():
-                OldSubpage.MoveTo(NewSubpage, "[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Move subpage left behind during move of parent page", checkTarget=False) #already checked target
+                OldSubpage.MoveTo(NewSubpage, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Move subpage left behind during move of parent page ([[User talk:{username}|Report bot issues]])", checkTarget=False) #already checked target
             # And then apply template fixes
             if Status == WILL_FIX:
                 log(f"Fixing {MoveData['oldpage']} required editing some templates")
-                NewPage.Edit(NewContent, "[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Update archiving templates after a page move")
+                NewPage.Edit(NewContent, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Update archiving templates after a page move ([[User talk:{username}|Report bot issues]])")
             PageSet.remove(item)
         else:
             pass # Just hold on a bit, dont fix it just yet
@@ -214,7 +214,7 @@ def PostRelevantUpdates():
     else:
         headerText = existingContent[:existingContent.find(editMarker)+len(editMarker)+1]
 
-    editSummary = "[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Update report | " + str(len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)) + " entries"
+    editSummary = f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]], Testing Phase) (Update report | {len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)} entries"
 
     reportPage.Edit(headerText+output, editSummary)
 
