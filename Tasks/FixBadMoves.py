@@ -1,7 +1,6 @@
 #This task tracks Special:Log/move, watching for any moves that appear to have left a subpage improperly orphaned, and fixes them automatically
 
 from wikitools import *
-import re as regex
 import datetime
 import time
 import math
@@ -57,7 +56,6 @@ def CalculateSubpageFixability(OldPage, NewPage):
     return IS_FIXED, "There are no non-redirect subpages"
 
 
-# ArchiveTemplates = regex.compile("^([Uu]ser:MiszaBot/config|[Uu]ser:HBC Archive Indexerbot/OptIn|[Uu]ser:ClueBot III/ArchiveThis)$")
 def FixPageTemplates(OldPage, NewPage):
     Templates = NewPage.GetTemplates()
     HadAChange = False
