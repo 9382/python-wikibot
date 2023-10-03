@@ -80,7 +80,7 @@ def panicCheck():
     global username
     expectedTaskCount = threading.active_count()
     while True:
-        time.sleep(30)
+        time.sleep(20)
         tasks = threading.active_count()
         # log(f"Active task count: {tasks-1}")
         if tasks == 1:
