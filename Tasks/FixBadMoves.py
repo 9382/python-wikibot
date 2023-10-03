@@ -168,6 +168,7 @@ def PostRelevantUpdates():
     Pages_willfix = []
     Pages_wontfix = []
     Pages_cantfix = []
+    log("Calculating the fixability of pages...")
     for page in list(FlaggedPages):
         OldPage, NewPage = Article(page["oldpage"]), Article(page["newpage"])
         page["oldpage_article"] = OldPage
@@ -179,10 +180,13 @@ def PostRelevantUpdates():
         elif Decision == WILL_FIX:
             Pages_willfix.append([page, Data])
         elif Decision == WONT_FIX:
+            lwarn(f"Refused to automatically fix {OldPage} because {Data}")
             Pages_wontfix.append([page, Data])
         elif Decision == CANT_FIX:
+            lwarn(f"Unable to automatically fix {OldPage} because {Data}")
             Pages_cantfix.append([page, Data])
 
+    log("Attempting to fix some of the fixable pages...")
     BadPages = ConsiderFixingPages(Pages_willfix)
     Pages_wontfix.extend(BadPages)
 
