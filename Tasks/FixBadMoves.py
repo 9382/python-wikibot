@@ -138,7 +138,7 @@ def ConsiderFixingPages(PageSet):
                 print("not fixing because we hit an edit count limit")
                 continue #TEMPORARY EDIT COUNT ENFORCER
             for OldSubpage, NewSubpage in PendingMoves.items():
-                OldSubpage.MoveTo(NewSubpage, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]]) (Move subpage left behind during move of parent page ([[User talk:{username}|Report bot issues]])", checkTarget=False) #already checked target
+                OldSubpage.MoveTo(NewSubpage, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]] - Move subpage left behind during move of parent page ([[User talk:{username}|Report bot issues]])", checkTarget=False) #already checked target
                 LocalEditTrack = LocalEditTrack + 1
             # And then apply template fixes
             if Status == WILL_FIX:
