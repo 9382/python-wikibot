@@ -116,9 +116,7 @@ def FixPageTemplates(OldPage, NewPage):
         return IS_FIXED, Content
 
 
-LocalEditTrack = 0 #I want our 50th edit to be the report updating
 def ConsiderFixingPages(PageSet):
-    global LocalEditTrack
     BadPages = []
     for item in list(PageSet):
         MoveData, PendingMoves = item #magical python unpacking
@@ -134,17 +132,12 @@ def ConsiderFixingPages(PageSet):
         # Check how long its been
         if datetime.datetime.utcnow().timestamp() > MoveData["logtime"] + 86400*Config.get("DaysUntilFix"):
             # Handle the subpages
-            if len(PendingMoves.keys()) + (Status == WILL_FIX and 1 or 0) > 49-LocalEditTrack:
-                print("not fixing because we hit an edit count limit")
-                continue #TEMPORARY EDIT COUNT ENFORCER
             for OldSubpage, NewSubpage in PendingMoves.items():
-                OldSubpage.MoveTo(NewSubpage, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]] - Move subpage left behind during move of parent page ([[User talk:{username}|Report bot issues]])", checkTarget=False) #already checked target
-                LocalEditTrack = LocalEditTrack + 1
+                OldSubpage.MoveTo(NewSubpage, f"Move subpage left behind during move of parent page ([[User talk:{username}|Report bot issues]])", checkTarget=False) #already checked target
             # And then apply template fixes
             if Status == WILL_FIX:
                 log(f"Fixing {MoveData['oldpage']} required editing some templates")
-                NewPage.Edit(NewContent, f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]]) (Update archiving templates after a page move ([[User talk:{username}|Report bot issues]])")
-                LocalEditTrack = LocalEditTrack + 1
+                NewPage.Edit(NewContent, f"Update archiving templates after a page move ([[User talk:{username}|Report bot issues]])")
             PageSet.remove(item)
         else:
             pass # Just hold on a bit, dont fix it just yet
@@ -225,7 +218,7 @@ def PostRelevantUpdates():
     else:
         headerText = existingContent[:existingContent.find(editMarker)+len(editMarker)+1]
 
-    editSummary = f"[[Wikipedia:Bots/Requests for approval/Aidan9382-Bot 3|Trial Edit]]) (Update report | {len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)} entries"
+    editSummary = f"Update report | {len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)} entries"
 
     reportPage.Edit(headerText+output, editSummary)
 
@@ -284,10 +277,6 @@ def GatherExistingEntries():
 
 
 def __main__():
-    if True:
-        # PerformLogCheck()
-        PostRelevantUpdates()
-        return
     prevMinute = datetime.datetime.utcnow().minute
     prevHour = datetime.datetime.utcnow().hour
     while True:
