@@ -1,7 +1,6 @@
 #This task tracks Special:Log/move, watching for any moves that appear to have left a subpage improperly orphaned
 
 from wikitools import *
-import re as regex
 import datetime
 import time
 import math
