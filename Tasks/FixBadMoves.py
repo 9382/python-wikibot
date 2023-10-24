@@ -23,7 +23,6 @@ CANT_FIX = 3 # Technical issue preventing a fix entirely
 IS_FIXED = 4 # Nothing to do here
 
 def CalculateSubpageFixability(OldPage, NewPage):
-    print("CalculateSubpageFixability", OldPage, NewPage)
     if not OldPage.IsRedirect:
         return WONT_FIX, "The old page is no longer a redirect"
     if NewPage.IsRedirect:
@@ -122,10 +121,10 @@ def ConsiderFixingPages(PageSet):
         MoveData, PendingMoves = item #magical python unpacking
         OldPage = MoveData["oldpage_article"]
         NewPage = MoveData["newpage_article"]
-        print("ConsiderFixingPages", OldPage, NewPage)
         Status, NewContent = FixPageTemplates(OldPage, NewPage)
         if Status == WONT_FIX or Status == CANT_FIX:
             # Template sorting has gone wrong, dont continue further!
+            lwarn(f"{item[0]} has got some template issues")
             PageSet.remove(item)
             BadPages.append([item[0], "Issue during template handling with " + str(NewContent)])
             continue
@@ -235,18 +234,18 @@ def PerformLogCheck():
         if event["logid"] not in CheckedLogs:
             CheckedLogs.add(event["logid"])
             OldPage, NewPage = event["title"], event["params"]["target_title"]
-            IsPoor, Data = DetermineIfMoveIsPoor(OldPage, NewPage)
-            if IsPoor:
+            result, message = CalculateSubpageFixability(Article(OldPage), Article(NewPage))
+            if result != IS_FIXED:
                 log(f"'{OldPage}' is now in the buffer check")
                 PagesToCheck.append({
-                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(Data), "logid":event["logid"],
+                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(message),
                     "logtime":datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp()
                 })
 
     for page in list(PagesToCheck):
         if datetime.datetime.utcnow().timestamp() > page["logtime"] + 60*Config.get("CheckBufferTime"):
-            IsPoor, Data = DetermineIfMoveIsPoor(page["oldpage"], page["newpage"])
-            if IsPoor:
+            result, message = CalculateSubpageFixability(Article(page["oldpage"]), Article(page["newpage"]))
+            if result != IS_FIXED:
                 lwarn(f"{page['oldpage']} has failed the buffer check, and has now moved to the flagged list")
                 PagesToFlag.append(page)
             PagesToCheck.remove(page)
