@@ -23,17 +23,17 @@ CANT_FIX = 3 # Technical issue preventing a fix entirely
 IS_FIXED = 4 # Nothing to do here
 
 def CalculateSubpageFixability(OldPage, NewPage):
-    if not OldPage.IsRedirect:
-        return WONT_FIX, "The old page is no longer a redirect"
-    if NewPage.IsRedirect:
-        return WONT_FIX, "The new page is now also a redirect"
-    if not (OldPage.GetLinkedPage().Exists and NewPage.GetLinkedPage().Exists):
-        pass# return WONT_FIX, "One of the pages is missing an associated article page?"
-    success, result = NewPage.CanEditWithConditions()
-    if not success:
-        return CANT_FIX, "The new page target can't be edited"
     OldSubpages = OldPage.GetSubpages()
     if len(OldSubpages) > 0:
+        if not OldPage.IsRedirect:
+            return WONT_FIX, "The old page is no longer a redirect"
+        if NewPage.IsRedirect:
+            return WONT_FIX, "The new page is now also a redirect"
+        if not (OldPage.GetLinkedPage().Exists and NewPage.GetLinkedPage().Exists):
+            return WONT_FIX, "One of the pages is missing an associated article page?"
+        success, result = NewPage.CanEditWithConditions()
+        if not success:
+            return CANT_FIX, "The new page target can't be edited"
         PagesToBeMoved = []
         for Subpage in OldSubpages:
             Subpage = Article(Subpage)
