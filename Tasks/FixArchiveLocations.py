@@ -74,11 +74,11 @@ def DetermineBadMove(page):
                 log("Move was too recent, avoiding fixing it just yet")
                 return #Don't alert help page for this
             else:
-                for subpage in articleSubpages:
-                    subpage.MoveTo(
-                        currentLocation+subpage.Title[len(prevPage.Title):],
-                        "Relocating subpage under new page title"
-                    ) #Move to new page with subpage suffix kept
+                # for subpage in articleSubpages:
+                #     subpage.MoveTo(
+                #         currentLocation+subpage.Title[len(prevPage.Title):],
+                #         "Relocating subpage under new page title"
+                #     ) #Move to new page with subpage suffix kept
                 return len(subpages)
 
     MarkUnsafe(currentLocation, "No recent enough page moves found")
@@ -110,20 +110,8 @@ def CheckArchiveLocations(page):
                         if not archivePage.Exists or archivePage.IsRedirect:
                             #At this point, we attempt to move pages from the old name, in case the mover just happened to forget
                             lwarn(f"{currentLocation} failed safety check (Missing expected archives), checking previous pages")
-                            wasFixed = DetermineBadMove(page)
-                            if wasFixed: #Final confirmation that the fix worked
-                                archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
-                                if archivePage.Exists and not archivePage.IsRedirect:
-                                    lsucc("Fixing archive location now that subpages have been moved")
-                                    template.ChangeKeyData("archive", newArchive)
-                                    content = content.replace(template.Original, template.Text)
-                                    if wasFixed > 1:
-                                        extraNote = f"; {wasFixed} subpages moved"
-                                    elif wasFixed == 1:
-                                        extraNote = f"; {wasFixed} subpage moved"
-                                else:
-                                    MarkUnsafe(currentLocation, "Subpages were moved, but the situation doesn't seem fixed. Please confirm")
-                            break
+                            DetermineBadMove(page)
+                            # Page moving functionality has been disabled as Task 3 is now responsible for this
 
                         else: #Archive exists under the page already, fixes can go ahead
                             lsucc("[Archive Fix] Safety test has been passed")
