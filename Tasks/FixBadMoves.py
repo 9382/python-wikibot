@@ -284,7 +284,7 @@ def __main__():
         if HaltIfStopped():
             prevMinute = datetime.datetime.utcnow().minute
             prevHour = datetime.datetime.utcnow().hour
-        elif curHour != prevHour and prevHour%12 == 0:
+        elif curHour != prevHour and curHour%12 == 0:
             Config.update()
             log("Beginning hourly cycle")
             PerformLogCheck()
