@@ -103,6 +103,7 @@ class APIException(Exception):
 username, userid = None, None
 enwiki = "https://en.wikipedia.org/"
 requestSession = requests.Session()
+requestSession.headers.update({"User-Agent": "python-wikibot/2.1.0"}) #version number is mostly random
 
 #Central request handler, used for automatically sorting cookies
 def request(method, page, **kwargs):
