@@ -237,8 +237,13 @@ def PerformLogCheck():
             result, message = CalculateSubpageFixability(Article(OldPage), Article(NewPage))
             if result != IS_FIXED:
                 log(f"'{OldPage}' is now in the buffer check")
+                PagesToBeMoved = []
+                for Subpage in Article(OldPage).GetSubpages():
+                    Subpage = Article(Subpage)
+                    if not Subpage.IsRedirect:
+                        PagesToBeMoved.append(Subpage)
                 PagesToCheck.append({
-                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(message),
+                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(PagesToBeMoved),
                     "logtime":datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp()
                 })
 
