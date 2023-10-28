@@ -26,7 +26,7 @@ def CalculateSubpageFixability(OldPage, NewPage):
     OldSubpages = OldPage.GetSubpages()
     if len(OldSubpages) > 0:
         if not OldPage.IsRedirect:
-            if NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID:
+            if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
                 return IS_FIXED, "The move was reverted"
             return WONT_FIX, "The old page is no longer a redirect"
         if NewPage.IsRedirect:
