@@ -23,6 +23,7 @@ import requests
 import random
 import json
 import time
+import sys
 import os
 colorama.init()
 
@@ -62,12 +63,20 @@ def safeWriteToFile(filename, content, mode="w", encoding="UTF-8"):
 
 _logSession = f"{currentDate()[:10]}.{int(time.time()//1)}"
 _logLocked = False
+_logCount = [0, 0, 0, 0, 0] #log, error, alert, warn, success
+_logCountOrder = ["Log", "Error", "Alert", "Warning", "Success"]
+_print = print
+def print(*args, **kwargs):
+    sys.stdout.write('\x1b[2K\r') #clear the last line via magic
+    _print(*args, **kwargs)
+    _print(f"\033[47m\033[30mLOG DATA | Normal: {_logCount[0]} | Errors: {_logCount[1]} | Alerts: {_logCount[2]} | Warnings: {_logCount[3]} | Successes: {_logCount[4]}", end="\033[0m")
 def log(content, *, colour="", LogType="Log"):
+    #Manages the writing to a log file for debugging
     global _logLocked # Prevent thread collisions
     while _logLocked:
         time.sleep(0)
     _logLocked = True
-    #Manages the writing to a log file for debugging
+    _logCount[_logCountOrder.index(LogType)] += 1
     prefixText = f"{LogType} {currentDate()} - {threading.current_thread().name}"
     print(f"{colour}[{prefixText}] {content}\033[0m")
     success, result = safeWriteToFile(f"Logs/{_logSession}.log", f"[{prefixText}] {content}\n", "a")
