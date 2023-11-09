@@ -19,7 +19,7 @@ unsafeCases = {}
 archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
 def MarkUnsafe(title, reason):
     global unsafeCases
-    lwarn(f"Just placed {title} on the no-action list: {reason}")
+    log(f"Just placed {title} on the no-action list: {reason}")
     unsafeCases[title] = reason
 def DetermineBadMove(page):
     #Attempts to determine if pages from before weren't moved under the new name
