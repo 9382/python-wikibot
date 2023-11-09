@@ -23,8 +23,14 @@ CANT_FIX = 3 # Technical issue preventing a fix entirely
 IS_FIXED = 4 # Nothing to do here
 
 def CalculateSubpageFixability(OldPage, NewPage):
-    OldSubpages = OldPage.GetSubpages()
-    if len(OldSubpages) > 0:
+    PagesToBeMoved = []
+    for Subpage in OldPage.GetSubpages():
+        Subpage = Article(Subpage)
+        if Subpage.GetLinkedPage().Exists:
+            return WONT_FIX, "One of the subpages has a linked article page"
+        if not Subpage.IsRedirect:
+            PagesToBeMoved.append(Subpage)
+    if len(PagesToBeMoved) > 0:
         if not OldPage.IsRedirect:
             if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
                 return IS_FIXED, "The move was reverted"
@@ -36,25 +42,17 @@ def CalculateSubpageFixability(OldPage, NewPage):
         success, result = NewPage.CanEditWithConditions()
         if not success:
             return CANT_FIX, "The new page target can't be edited"
-        PagesToBeMoved = []
-        for Subpage in OldSubpages:
-            Subpage = Article(Subpage)
-            if Subpage.GetLinkedPage().Exists:
-                return WONT_FIX, "One of the subpages has a linked article page"
-            if not Subpage.IsRedirect:
-                PagesToBeMoved.append(Subpage)
-        if len(PagesToBeMoved) > 0:
-            if len(PagesToBeMoved) > Config.get("SubpageMoveLimit"):
-                return WONT_FIX, "There are a non-trivial amount of subpages to be moved"
-            FixMap = {}
-            for Subpage in PagesToBeMoved:
-                NewName = NewPage.Title+Subpage.Title[len(OldPage.Title):]
-                success, result = Subpage.CanMoveTo(NewName)
-                if not success:
-                    return CANT_FIX, "Can't move [[" + Subpage.Title + "]] to [[" + NewName + "]]"
-                else:
-                    FixMap[Subpage] = NewName
-            return WILL_FIX, FixMap
+        if len(PagesToBeMoved) > Config.get("SubpageMoveLimit"):
+            return WONT_FIX, "There are a non-trivial amount of subpages to be moved"
+        FixMap = {}
+        for Subpage in PagesToBeMoved:
+            NewName = NewPage.Title+Subpage.Title[len(OldPage.Title):]
+            success, result = Subpage.CanMoveTo(NewName)
+            if not success:
+                return CANT_FIX, "Can't move [[" + Subpage.Title + "]] to [[" + NewName + "]]"
+            else:
+                FixMap[Subpage] = NewName
+        return WILL_FIX, FixMap
     return IS_FIXED, "There are no non-redirect subpages"
 
 
@@ -230,7 +228,7 @@ def PerformLogCheck():
     global CheckedLogs
     #The above globals aren't required but it's easier to understand this way
 
-    LogData = requestapi("get", "action=query&list=logevents&letype=move&lelimit=50&lenamespace=1")
+    LogData = requestapi("get", "action=query&list=logevents&letype=move&lelimit=100&lenamespace=1")
     LogEvents = LogData["query"]["logevents"]
     for event in LogEvents:
         if event["logid"] not in CheckedLogs:
