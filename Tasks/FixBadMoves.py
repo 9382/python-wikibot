@@ -166,7 +166,6 @@ def PostRelevantUpdates():
         page["oldpage_article"] = OldPage
         page["newpage_article"] = NewPage
         Decision, Data = CalculateSubpageFixability(OldPage, NewPage)
-        # print(page, Decision, Data)
         if Decision == IS_FIXED:
             FlaggedPages.remove(page)
         elif Decision == WILL_FIX:
@@ -228,7 +227,7 @@ def PerformLogCheck():
     global CheckedLogs
     #The above globals aren't required but it's easier to understand this way
 
-    LogData = requestapi("get", "action=query&list=logevents&letype=move&lelimit=100&lenamespace=1")
+    LogData = requestapi("get", "action=query&list=logevents&letype=move&lelimit=200&lenamespace=1")
     LogEvents = LogData["query"]["logevents"]
     for event in LogEvents:
         if event["logid"] not in CheckedLogs:
