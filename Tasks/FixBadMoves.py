@@ -73,16 +73,16 @@ def FixPageTemplates(OldPage, NewPage):
                     Content = Content.replace(Template.Original, Template.Text)
                 elif not archive.startswith(NewPage.Title + "/"):
                     # neither the previous nor current page, just give up, needs human attention
-                    return WONT_FIX, "User:MiszaBot/config"
+                    return WONT_FIX, "User:MiszaBot/config - Target page was already wrong"
                 #else: already fixed, whatever
             else: #uh... what?
-                return WONT_FIX, "User:MiszaBot/config"
+                return WONT_FIX, "User:MiszaBot/config - Missing required arg"
 
         elif TemplateName.lower() == "user:hbc archive indexerbot/optin":
             #Fix for Legobot
             if "target" in Template.Args and "mask" in Template.Args:
                 if "mask1" in Template.Args:
-                    return WONT_FIX, "User:HBC Archive Indexerbot/OptIn" #too complex a situation for us (im lazy), dont touch it
+                    return WONT_FIX, "User:HBC Archive Indexerbot/OptIn - Complex use" #too complex a situation for us (im lazy), dont touch it
                 target, mask = Template.Args["target"], Template.Args["mask"]
                 if target.startswith(OldPage.Title + "/") and mask.startswith(OldPage.Title + "/"):
                     # fixable
@@ -91,9 +91,9 @@ def FixPageTemplates(OldPage, NewPage):
                     Content = Content.replace(Template.Original, Template.Text)
                 elif not(target.startswith(NewPage.Title + "/") and mask.startswith(NewPage.Title + "/")):
                     # neither the previous nor current page, just give up, needs human attention
-                    return WONT_FIX, "User:HBC Archive Indexerbot/OptIn"
+                    return WONT_FIX, "User:HBC Archive Indexerbot/OptIn - Target page was already wrong"
             else: #more missing required arguments
-                return WONT_FIX, "User:HBC Archive Indexerbot/OptIn"
+                return WONT_FIX, "User:HBC Archive Indexerbot/OptIn - Missing required args"
 
         elif TemplateName.lower() == "user:cluebot iii/archivethis":
             #Fix for ClueBot III
@@ -105,9 +105,9 @@ def FixPageTemplates(OldPage, NewPage):
                     Content = Content.replace(Template.Original, Template.Text)
                 elif not archiveprefix.startswith(NewPage.Title + "/"):
                     # neither the previous nor current page, just give up, needs human attention
-                    return WONT_FIX, "User:ClueBot III/ArchiveThis"
+                    return WONT_FIX, "User:ClueBot III/ArchiveThis - Target page was already wrong"
             else: #these args are needed! stop missing them!!
-                return WONT_FIX, "User:ClueBot III/ArchiveThis"
+                return WONT_FIX, "User:ClueBot III/ArchiveThis - Missing required args"
 
     if Content != NewPage.GetContent():
         return WILL_FIX, Content
