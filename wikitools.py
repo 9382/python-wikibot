@@ -115,10 +115,21 @@ requestSession = requests.Session()
 requestSession.headers.update({"User-Agent": "python-wikibot/2.1.0"}) #version number is mostly random
 
 #Central request handler, used for automatically sorting cookies
+MaxRequestTries = 3
 def request(method, page, **kwargs):
-    startTime = time.perf_counter()
-    request = getattr(requestSession, method)(page, **kwargs)
-    timeTaken = time.perf_counter() - startTime
+    request = None
+    for i in range(1, MaxRequestTries+1):
+        startTime = time.perf_counter()
+        try:
+            request = getattr(requestSession, method)(page, **kwargs)
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            lalert(f"Failed to send a request due to timeout on try {i}{i<MaxRequestTries and '; gonna sleep for a bit and then try again' or ''}")
+            if i == MaxRequestTries:
+                raise exc
+            time.sleep(5)
+        else:
+            timeTaken = time.perf_counter() - startTime
+            break
     if timeTaken > 2.5:
         lwarn(f"[request] Just took {timeTaken}s to complete a single request - are we running alright?")
     return request
