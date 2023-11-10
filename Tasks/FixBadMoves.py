@@ -124,7 +124,7 @@ def ConsiderFixingPages(PageSet):
         Status, NewContent = FixPageTemplates(OldPage, NewPage)
         if Status == WONT_FIX or Status == CANT_FIX:
             # Template sorting has gone wrong, dont continue further!
-            lwarn(f"{item[0]} has got some template issues")
+            log(f"{item[0]} has got some template issues")
             PageSet.remove(item)
             BadPages.append([item[0], "Issue during template handling with " + str(NewContent)])
             continue
@@ -171,10 +171,10 @@ def PostRelevantUpdates():
         elif Decision == WILL_FIX:
             Pages_willfix.append([page, Data])
         elif Decision == WONT_FIX:
-            lwarn(f"Refused to automatically fix {OldPage} because {Data}")
+            log(f"Refused to automatically fix {OldPage} because {Data}")
             Pages_wontfix.append([page, Data])
         elif Decision == CANT_FIX:
-            lwarn(f"Unable to automatically fix {OldPage} because {Data}")
+            log(f"Unable to automatically fix {OldPage} because {Data}")
             Pages_cantfix.append([page, Data])
 
     log("Attempting to fix some of the fixable pages...")
@@ -250,7 +250,7 @@ def PerformLogCheck():
         if datetime.datetime.utcnow().timestamp() > page["logtime"] + 60*Config.get("CheckBufferTime"):
             result, message = CalculateSubpageFixability(Article(page["oldpage"]), Article(page["newpage"]))
             if result != IS_FIXED:
-                lwarn(f"{page['oldpage']} has failed the buffer check, and has now moved to the flagged list")
+                log(f"{page['oldpage']} has failed the buffer check, and has now moved to the flagged list")
                 PagesToFlag.append(page)
             PagesToCheck.remove(page)
 

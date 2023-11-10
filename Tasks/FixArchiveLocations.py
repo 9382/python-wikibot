@@ -109,7 +109,7 @@ def CheckArchiveLocations(page):
                         archivePage = Article(newArchive.replace(r"%(counter)d", "1"))
                         if not archivePage.Exists or archivePage.IsRedirect:
                             #At this point, we attempt to move pages from the old name, in case the mover just happened to forget
-                            lwarn(f"{currentLocation} failed safety check (Missing expected archives), checking previous pages")
+                            log(f"{currentLocation} failed safety check (Missing expected archives), checking previous pages")
                             DetermineBadMove(page)
                             # Page moving functionality has been disabled as Task 3 is now responsible for this
 
