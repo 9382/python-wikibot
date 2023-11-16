@@ -457,10 +457,10 @@ class Article: #Creates a class representation of an article to contain function
         except Exception as exc:
             lerror(f"[Article move] Warning: Failed to submit a move request for {self} - {traceback.format_exc()}")
 
-    def GetWikiLinks(self):
+    def GetWikiLinks(self, limit=200):
         if not self.Exists:
             return []
-        data = requestapi("get", f"action=query&prop=links&indexpageids=&pllimit=200&padeids={self.PageID}")
+        data = requestapi("get", f"action=query&prop=links&indexpageids=&pllimit={limit}&pageids={self.PageID}")
         data = data["query"]["pages"][data["query"]["pageids"][0]]
         return data["links"]
 
