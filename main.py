@@ -22,8 +22,10 @@ if not DidLogin:
     exit()
 
 #Task loader
+WasForceExit = False
 log("Attempting to load tasks...")
 def BeginTaskCycle(func, funcName=None):
+    global WasForceExit
     if not funcName:
         funcName = repr(func)
     while True:
@@ -35,6 +37,10 @@ def BeginTaskCycle(func, funcName=None):
             lerror(f"[Tasks] Function {funcName} just threw a timeout error: {exc}\nThis thread will restart soon...")
             time.sleep(10)
             continue
+        except KeyboardInterrupt:
+            lalert("Force-exiting thread without restart due to a KeyboardInterrupt")
+            WasForceExit = True
+            break
         except BaseException as exc:
             lerror(f"[Tasks] Function {funcName} just threw a critical (not request based) error: {traceback.format_exc()}\nThis thread will restart in 15 minutes...")
             time.sleep(900)
@@ -69,7 +75,7 @@ for file in os.listdir("Tasks"):
         except Exception as exc:
             lerror(f"[Tasks] Task {file} import error -> {traceback.format_exc()}")
         else:
-            taskThread = threading.Thread(target=BeginTaskCycle, args=(ImportedTask.__main__, filename), name=filename)
+            taskThread = threading.Thread(target=BeginTaskCycle, args=(ImportedTask.__main__, filename), name=filename, daemon=True)
             taskThread.start()
     else:
         log(f"[Tasks] Skipping task {file} as it is not enabled")
@@ -116,4 +122,5 @@ def panicCheck():
                 lwarn(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
                 SetStopped(True)
 BeginTaskCycle(panicCheck, "Main Loop")
-input("Press enter to exit...")
+if not WasForceExit:
+    input("Press enter to exit...")
