@@ -37,7 +37,7 @@ def CalculateSubpageFixability(OldPage, NewPage):
             return WONT_FIX, "The old page is no longer a redirect"
         if NewPage.IsRedirect:
             return WONT_FIX, "The new page is now also a redirect"
-        if Article(OldPage.PageID, FollowRedirects=True) != NewPage.PageID:
+        if Article(OldPage.PageID, FollowRedirects=True).PageID != NewPage.PageID:
             return WONT_FIX, "These pages are not obviously related to eachother"
         if not (OldPage.GetLinkedPage().Exists and NewPage.GetLinkedPage().Exists):
             return WONT_FIX, "One of the pages is missing an associated article page?"
