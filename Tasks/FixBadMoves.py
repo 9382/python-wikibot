@@ -91,7 +91,7 @@ def FixPageTemplates(OldPage, NewPage):
                     Template.ChangeKeyData("target", target.replace(OldPage.Title + "/", NewPage.Title + "/"))
                     Template.ChangeKeyData("mask", mask.replace(OldPage.Title + "/", NewPage.Title + "/"))
                     Content = Content.replace(Template.Original, Template.Text)
-                elif not(target.startswith(NewPage.Title + "/") and mask.startswith(NewPage.Title + "/")) and not(target,startswith("/") and mask.startswith("/")):
+                elif not(target.startswith(NewPage.Title + "/") and mask.startswith(NewPage.Title + "/")) and not(target.startswith("/") and mask.startswith("/")):
                     # neither the previous nor current page, just give up, needs human attention
                     return WONT_FIX, "User:HBC Archive Indexerbot/OptIn - Target page was already wrong"
             else: #more missing required arguments
