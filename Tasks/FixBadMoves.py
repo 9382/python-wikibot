@@ -26,9 +26,9 @@ def CalculateSubpageFixability(OldPage, NewPage):
     PagesToBeMoved = []
     for Subpage in OldPage.GetSubpages():
         Subpage = Article(Subpage)
-        if Subpage.GetLinkedPage().Exists:
-            return WONT_FIX, "One of the subpages has a linked article page"
         if not Subpage.IsRedirect:
+            if Subpage.GetLinkedPage().Exists:
+                return WONT_FIX, "One of the subpages has a linked article page"
             PagesToBeMoved.append(Subpage)
     if len(PagesToBeMoved) > 0:
         if not OldPage.IsRedirect:
