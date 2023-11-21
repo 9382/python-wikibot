@@ -3,9 +3,9 @@
 
 __all__ = [
         "log", "lerror", "lalert", "lwarn", "lsucc",
-        "Article", "Template", "Revision", "IterateCategory", "WikiConfig", "APIException",
-        "GetSelf", "AttemptLogin", "CheckIfStopped", "HaltIfStopped", "SetStopped",
-        "requestapi", "CreateAPIFormRequest" #Avoid using these directly unless required
+        "Article", "BatchProcessArticles", "Template", "Revision", "IterateCategory", "WikiConfig",
+        "APIException", "GetSelf", "AttemptLogin", "CheckIfStopped", "HaltIfStopped", "SetStopped",
+        "requestapi", "CreateAPIFormRequest"
 ]
 
 ## Notes:
@@ -316,21 +316,43 @@ def CheckActionCount():
     lastActionTime = time.time()
 
 
+def SimplifyQueryData(queryData):
+    out = {"normalized": {}, "redirects": {}}
+    if "normalized" in queryData:
+        for occurance in queryData["normalized"]:
+            out["normalized"][occurance["from"]] = occurance["to"]
+    if "redirects" in queryData:
+        for occurance in queryData["redirects"]:
+            out["redirects"][occurance["from"]] = occurance["to"]
+    return out
+
 bracketbalancereg = regex.compile('{{|}}') #For template processing
+_ArticleSearchString = "action=query&prop=info&indexpageids=&intestactions=edit|move"
 class Article: #Creates a class representation of an article to contain functions instead of calling them from everywhere. Also makes management easier
-    def __init__(self, identifier, *, FollowRedirects=False):
-        if type(identifier) == str:
-            identifier = urllib.parse.quote(identifier.replace("_", " "))
-            searchType = "titles"
-        elif type(identifier) == int:
-            searchType = "pageids"
-        elif type(identifier) == dict and "pageid" in identifier:
-            identifier = identifier["pageid"]
-            searchType = "pageids"
-        else:
-            raise Exception(f"Invalid identifier input '{identifier}'")
-        rawData = requestapi("get", f"action=query&prop=info&indexpageids=&intestactions=edit|move&{searchType}={identifier}{FollowRedirects and '&redirects=' or ''}")
-        pageInfo = rawData["query"]["pages"][rawData["query"]["pageids"][0]] #Loooovely oneliner, ay?
+    def __init__(self, identifier=None, *, FollowRedirects=False, pageInfo=None, queryData=None):
+        #cringe code that keeps getting messier
+        if pageInfo and not queryData:
+            lwarn(f"Attempted to declare an article from raw data with no redirect data")
+            queryData = {"normalized": {}, "redirects": {}}
+        if not pageInfo:
+            if type(identifier) == str:
+                identifier = urllib.parse.quote(identifier.replace("_", " "))
+                searchType = "titles"
+            elif type(identifier) == int:
+                searchType = "pageids"
+            elif type(identifier) == dict:
+                if "pageid" in identifier:
+                    identifier = identifier["pageid"]
+                    searchType = "pageids"
+                elif "title" in identifier:
+                    identifier = identifier["title"]
+                    searchType = "titles"
+            else:
+                raise Exception(f"Invalid identifier input '{identifier}'")
+            rawData = requestapi("get", f"{_ArticleSearchString}&{searchType}={identifier}{FollowRedirects and '&redirects=' or ''}")
+            queryData = SimplifyQueryData(rawData["query"])
+            pageInfo = rawData["query"]["pages"][rawData["query"]["pageids"][0]] #Loooovely oneliner, ay?
+
         if "invalid" in pageInfo:
             raise APIException(pageInfo["invalidreason"],"invalidpage")
         self._rawdata = pageInfo
@@ -346,7 +368,7 @@ class Article: #Creates a class representation of an article to contain function
         self.StrippedURLTitle = urllib.parse.quote(self.StrippedTitle)
         self.ContentModel = pageInfo["contentmodel"]
         self.IsRedirect = "redirect" in pageInfo
-        self.WasRedirected = FollowRedirects and "redirects" in rawData["query"]
+        self.WasRedirected = FollowRedirects and self.Title in queryData["redirects"].values()
         self.CanEdit = "edit" in pageInfo["actions"]
         self.CanMove = "move" in pageInfo["actions"]
         if self.Exists:
@@ -555,6 +577,45 @@ class Article: #Creates a class representation of an article to contain function
                             log("[Article] {{bots}} presence found, not denied")
                             return False
                 log("[Article] Exclusion check has managed to not hit a return, which is very odd")
+
+
+def BatchProcessArticles(articleSet, *, FollowRedirects=False):
+    # The order returned will be based on Page IDs
+    pageIDs = []
+    titles = []
+    for identifier in articleSet:
+        if type(identifier) == str:
+            titles.append(identifier.replace("_", " "))#urllib.parse.quote(identifier.replace("_", " ")))
+        elif type(identifier) == int:
+            pageIDs.append(identifier)
+        elif type(identifier) == dict:
+            if "pageid" in identifier:
+                pageIDs.append(identifier["pageid"])
+            elif "title" in identifier:
+                titles.append(identifier["title"].replace("_", " "))
+        else:
+            lalert(f"[BatchProcessArticles] Ignoring impossible Article identifier: {identifier}")
+    if len(pageIDs) > 0 and len(titles) > 0:
+        lwarn(f"[BatchProcessArticles] Received both types of input identifiers - expect abnormal ordering")
+    output = []
+    # The 200 at a time limit is arbitrary, I just felt like 200 sounded reasonable
+    while len(pageIDs) > 0:
+        rawData = requestapi("post", f"{_ArticleSearchString}{FollowRedirects and '&redirects=' or ''}", data={"pageids": "|".join(pageIDs[0:200])})["query"]
+        queryData = SimplifyQueryData(rawData)
+        pageIDs = pageIDs[200:]
+        for pageid in rawData["pageids"]:
+            output.append(Article(pageInfo=rawData["pages"][pageid], queryData=queryData))
+        if len(pageIDs) > 0:
+            log(f"[BatchProcessArticles] Working on pageids... {len(pageIDs)} left")
+    while len(titles) > 0:
+        rawData = requestapi("post", f"{_ArticleSearchString}{FollowRedirects and '&redirects=' or ''}", data={"titles": "|".join(titles[0:200])})["query"]
+        queryData = SimplifyQueryData(rawData)
+        titles = titles[200:]
+        for pageid in rawData["pageids"]:
+            output.append(Article(pageInfo=rawData["pages"][pageid], queryData=queryData))
+        if len(titles) > 0:
+            log(f"[BatchProcessArticles] Working on titles... {len(titles)} left")
+    return output
 
 
 def IterateCategory(category, torun):
