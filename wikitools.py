@@ -333,10 +333,10 @@ class Article: #Creates a class representation of an article to contain function
         pageInfo = rawData["query"]["pages"][rawData["query"]["pageids"][0]] #Loooovely oneliner, ay?
         if "invalid" in pageInfo:
             raise APIException(pageInfo["invalidreason"],"invalidpage")
-        self.rawdata = pageInfo
+        self._rawdata = pageInfo
         self.NamespaceID = pageInfo["ns"]
         self.Namespace = GetNamespace(self.NamespaceID)
-        self.Exists = not "missing" in pageInfo
+        self.Exists = "missing" not in pageInfo
         self.Title = pageInfo["title"]
         self.URLTitle = urllib.parse.quote(self.Title)
         if self.NamespaceID != 0:
@@ -356,25 +356,26 @@ class Article: #Creates a class representation of an article to contain function
             self.PageID = None
             self.CurrentRevision = None
         #Storage variables
-        self.Content = None
-        self.Templates = None
+        self._Content = None
+        self._Templates = None
     def __str__(self):
         return self.Title
 
     def GetContent(self):
         if not self.Exists:
             return
-        if self.Content != None:
-            return self.Content
+        if self._Content != None:
+            return self._Content
         if self.NamespaceID < 0:
             #Special pages do exist, but their content is, for our purposes, not relevant here.
             #For simplicity we just assign empty strings
-            self.Content = ""
+            lwarn(f"[Article] Attempted to access content of special page {self}")
+            self._Content = ""
             return ""
         data = requestapi("get", f"action=query&prop=revisions&indexpageids=&pageids={self.PageID}&rvslots=*&rvprop=timestamp|user|comment|content")
         data = data["query"]["pages"][data["query"]["pageids"][0]]
-        self.Content = data["revisions"][0]["slots"]["main"]["*"] #Idk man
-        return self.Content
+        self._Content = data["revisions"][0]["slots"]["main"]["*"] #Idk man
+        return self._Content
 
     def CanEditWithConditions(self, *, allowPageCreation=True, bypassExclusion=False):
         if not self.Exists and not allowPageCreation:
@@ -468,8 +469,8 @@ class Article: #Creates a class representation of an article to contain function
         return requestapi("get", f"action=query&list=allpages&aplimit=100&apnamespace={self.NamespaceID}&apprefix={self.StrippedURLTitle}/")["query"]["allpages"]
 
     def GetTemplates(self):
-        if self.Templates != None:
-            return self.Templates
+        if self._Templates != None:
+            return self._Templates
         if not self.Exists:
             return []
         templates = []
@@ -494,8 +495,8 @@ class Article: #Creates a class representation of an article to contain function
                 else:
                     textToScan = textToScan[2:] #Skip past unbalanced bracket set
                     break #Unfinished template, ignore it
-        self.Templates = templates
-        return self.Templates
+        self._Templates = templates
+        return self._Templates
 
     def GetLinkedPage(self):
         #Article gets Talk, Talk gets Article, you get the idea
