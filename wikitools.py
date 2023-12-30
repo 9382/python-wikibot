@@ -27,7 +27,7 @@ import sys
 import os
 colorama.init()
 
-#For an explenation of the config options below, please see the .env-example file
+#For an explanation of the config options below, please see the .env-example file
 envvalues = dotenv_values()
 SUBMITEDITS = envvalues["SUBMITEDITS"].lower() == "true"
 INDEV = envvalues["INDEV"].lower() == "true"
