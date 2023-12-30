@@ -231,7 +231,7 @@ def PerformLogCheck():
 
     LogData = requestapi("get", "action=query&list=logevents&letype=move&lelimit=200&lenamespace=1")
     LogEvents = LogData["query"]["logevents"]
-    for event in LogEvents:
+    for event in LogEvents[::-1]: # Check logs in reverse order to ensure latest is done last / earliest is done first
         if event["logid"] not in CheckedLogs:
             CheckedLogs.add(event["logid"])
             OldPage, NewPage = event["title"], event["params"]["target_title"]
