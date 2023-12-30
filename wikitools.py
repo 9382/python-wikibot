@@ -39,29 +39,12 @@ APS = 60/maxActionsPerMinute
 lastActionTime = 0
 actionCount = 0
 
-def currentDate():
-    #The current date in YYYY-MM-DD hh:mm:ss
+def currentDate(): #The current date in YYYY-MM-DD hh:mm:ss
     return str(datetime.datetime.fromtimestamp(time.time()//1))
-def safeWriteToFile(filename, content, mode="w", encoding="UTF-8"):
-    #Writes contents to a file, auto-creating the directory should it be missing
-    if filename.find("\\") > -1 or filename.find("/") > -1:
-        try:
-            os.makedirs("/".join(filename.replace("\\", "/").split("/")[:-1]), exist_ok=True)
-        except:
-            return False, f"Couldnt make directory for {filename}"
-    try:
-        file = open(filename, mode, encoding=encoding, newline="")
-    except:
-        return False, f"Failed to open {filename}"
-    try:
-        file.write(content)
-    except Exception as exc:
-        file.close()
-        return False, f"Failed to write content for {filename}"
-    file.close()
-    return True, f"Successfully wrote to {filename}"
-
 _logSession = f"{currentDate()[:10]}.{int(time.time()//1)}"
+if not os.path.exists("Logs/"):
+    os.makedirs("Logs")
+_logFile = open(f"Logs/{_logSession}.log", "w", encoding="utf-8", newline="")
 _logLocked = False
 _logCount = [0, 0, 0, 0, 0] #log, error, alert, warn, success
 _logCountOrder = ["Log", "Error", "Alert", "Warning", "Success"]
@@ -72,26 +55,29 @@ def print(*args, **kwargs):
     _print(f"\033[47m\033[30mLOG DATA | Normal: {_logCount[0]} | Errors: {_logCount[1]} | Alerts: {_logCount[2]} | Warnings: {_logCount[3]} | Successes: {_logCount[4]}", end="\033[0m")
 def log(content, *, colour="", LogType="Log"):
     #Manages the writing to a log file for debugging
-    global _logLocked # Prevent thread collisions
+    global _logLocked #Prevent thread collisions (guarantee clean printing)
     while _logLocked:
         time.sleep(0)
     _logLocked = True
     _logCount[_logCountOrder.index(LogType)] += 1
     prefixText = f"{LogType} {currentDate()} - {threading.current_thread().name}"
     print(f"{colour}[{prefixText}] {content}\033[0m")
-    success, result = safeWriteToFile(f"Logs/{_logSession}.log", f"[{prefixText}] {content}\n", "a")
-    if not success:
-        print(f"\033[41m\033[30m[{prefixText}] Failed to write to log file: {result}\033[0m")
+    try:
+        _logFile.write(f"[{prefixText}] {content}\n")
+    except Exception as exc:
+        _logCount[1] += 1 #+1 to Error
+        print(f"\033[41m\033[30m[{prefixText}] Failed to write to log file: {exc}\033[0m")
+    else:
+        _logFile.flush()
     _logLocked = False
-    return success
 def lerror(content): #Black text, red background
-    return log(content, colour="\033[41m\033[30m", LogType="Error")
+    log(content, colour="\033[41m\033[30m", LogType="Error")
 def lalert(content): #Red text
-    return log(content, colour="\033[31m", LogType="Alert")
+    log(content, colour="\033[31m", LogType="Alert")
 def lwarn(content): #Yellow text
-    return log(content, colour="\033[33m", LogType="Warning")
+    log(content, colour="\033[33m", LogType="Warning")
 def lsucc(content): #Green text
-    return log(content, colour="\033[32m", LogType="Success")
+    log(content, colour="\033[32m", LogType="Success")
 
 
 if SUBMITEDITS:

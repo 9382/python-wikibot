@@ -9,6 +9,11 @@ import requests
 import time
 import os
 
+if not os.path.exists("wikitools.py"):
+    print("main.py appears to have been loaded from the wrong directory (no wikitools.py found). Closing in 5 seconds...")
+    time.sleep(5)
+    exit()
+
 #See wikitools.py for all the classes and functions that form the primary tools
 from wikitools import *
 
