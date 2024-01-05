@@ -27,6 +27,8 @@ import sys
 import os
 colorama.init()
 
+CLIMode = __name__ == "__main__"
+
 #For an explanation of the config options below, please see the .env-example file
 envvalues = dotenv_values()
 SUBMITEDITS = envvalues["SUBMITEDITS"].lower() == "true"
@@ -48,11 +50,12 @@ _logFile = open(f"Logs/{_logSession}.log", "w", encoding="utf-8", newline="")
 _logLocked = False
 _logCount = [0, 0, 0, 0, 0] #log, error, alert, warn, success
 _logCountOrder = ["Log", "Error", "Alert", "Warning", "Success"]
-_print = print
-def print(*args, **kwargs):
-    sys.stdout.write('\x1b[2K\r') #clear the last line via magic
-    _print(*args, **kwargs)
-    _print(f"\033[47m\033[30mLOG DATA | Normal: {_logCount[0]} | Errors: {_logCount[1]} | Alerts: {_logCount[2]} | Warnings: {_logCount[3]} | Successes: {_logCount[4]}", end="\033[0m")
+if not CLIMode:
+    _print = print
+    def print(*args, **kwargs):
+        sys.stdout.write('\x1b[2K\r') #clear the last line via magic
+        _print(*args, **kwargs)
+        _print(f"\033[47m\033[30mLOG DATA | Normal: {_logCount[0]} | Errors: {_logCount[1]} | Alerts: {_logCount[2]} | Warnings: {_logCount[3]} | Successes: {_logCount[4]}", end="\033[0m")
 def log(content, *, colour="", LogType="Log"):
     #Manages the writing to a log file for debugging
     global _logLocked #Prevent thread collisions (guarantee clean printing)
@@ -675,7 +678,7 @@ def AttemptLogin(name, password):
 log("WikiTools has loaded")
 
 
-if __name__ == "__main__":
+if CLIMode:
     #Interactive mode for quick testing
     #If intending to use anything request based, AttemptLogin will need doing first due to assert calls
     log("Currently in the WikiTools CLI mode. Make sure to log-in (AttemptLogin) to work around assert=user calls")
