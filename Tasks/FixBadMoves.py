@@ -229,7 +229,7 @@ def PerformLogCheck():
     global CheckedLogs
     #The above globals aren't required but it's easier to understand this way
 
-    LogData = requestapi("get", "action=query&list=logevents&letype=move&lelimit=200&lenamespace=1")
+    LogData = requestapi("get", "action=query&list=logevents&letype=move&lelimit=500&lenamespace=1")
     LogEvents = LogData["query"]["logevents"]
     for event in LogEvents[::-1]: # Check logs in reverse order to ensure latest is done last / earliest is done first
         if event["logid"] not in CheckedLogs:
