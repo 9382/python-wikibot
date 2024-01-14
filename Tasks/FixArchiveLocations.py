@@ -16,7 +16,7 @@ Config = WikiConfig(f"User:{username}/FixArchiveLocations/config", {
 })
 
 unsafeCases = {}
-archiveTemplates = regex.compile("[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
+archiveTemplates = regex.compile("^[Uu]ser:([Mm]iszaBot|[Ll]owercase sigmabot III)/config")
 def MarkUnsafe(title, reason):
     global unsafeCases
     log(f"Just placed {title} on the no-action list: {reason}")
@@ -117,16 +117,13 @@ def CheckArchiveLocations(page):
                             lsucc("[Archive Fix] Safety test has been passed")
                             template.ChangeKeyData("archive", newArchive)
                             content = content.replace(template.Original, template.Text)
-                            break
                     else: #Regex did not match
                         MarkUnsafe(currentLocation, "Couldn't find a supported archive value")
-                        break
                 else: #Value passed the test and shouldn't be considered faulty
                     MarkUnsafe(currentLocation, "The archive value is fine, but it's still in the category")
-                    break
             elif not "archive" in template.Args: #No archive key
                 MarkUnsafe(currentLocation, "No archive key present")
-                break
+            break
     if content != page.GetContent():
         page.Edit(content, f"Fixed archive location for Lowercase Sigmabot III{extraNote} ([[User:MiszaBot/config#Parameters explained|More info]] - [[User talk:{username}|Report bot issues]])", minorEdit=True)
 
