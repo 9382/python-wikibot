@@ -22,6 +22,10 @@ WONT_FIX = 2 # Fine technically, but something seems off - divert to a human
 CANT_FIX = 3 # Technical issue preventing a fix entirely
 IS_FIXED = 4 # Nothing to do here
 
+def Plural(n, s1, s2):
+    return s1 if n == 1 else s2
+
+
 def CalculateSubpageFixability(OldPage, NewPage):
     PagesToBeMoved = []
     for Subpage in OldPage.GetSubpages():
@@ -218,7 +222,9 @@ def PostRelevantUpdates():
     else:
         headerText = existingContent[:existingContent.find(editMarker)+len(editMarker)+1]
 
-    editSummary = f"Update report | {len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)} entries"
+    output = f"<!-- Last updated: {datetime.datetime.utcnow().isoformat(' ', 'minutes')} -->\n" + output
+    totalPages = len(Pages_willfix) + len(Pages_wontfix) + len(Pages_cantfix)
+    editSummary = f"Update report | {totalPages} {Plural(totalPages, 'entry', 'entries')}"
 
     reportPage.Edit(headerText+output, editSummary)
 
