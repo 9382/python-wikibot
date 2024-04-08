@@ -259,6 +259,7 @@ class Template: #Parses a template and returns a class object representing it
         self.Text = SubstituteIntoString(self.Text, target.replace(olddata, newdata), keylocation.start()+1, keylocation.start()+len(target)+1)
 
 revisionMoveRegex = regex.compile('^(.+?) moved page \[\[([^\]]+)\]\] to \[\[([^\]]+)\]\]')
+oldRevisionMoveRegex = regex.compile('^moved \[\[([^\]]+)\]\] to \[\[([^\]]+)\]\]')
 class Revision: #For getting the history of pages
     def __init__(self, data, diff=None):
         self.ID = data["revid"]
@@ -285,6 +286,10 @@ class Revision: #For getting the history of pages
         if moveData and moveData.group(1) == self.User:
             if self.SizeChange == 0 or self.SizeChange == 61+len(moveData.group(3).encode("utf-8")):
                 return True, moveData.group(2), moveData.group(3)
+        oldMoveData = oldRevisionMoveRegex.search(self.Comment)
+        if oldMoveData:
+            if self.SizeChange == 0 or self.SizeChange == 61+len(oldMoveData.group(2).encode("utf-8")):
+                return True, oldMoveData.group(1), oldMoveData.group(2)
         return False, None, None
 
 
