@@ -283,12 +283,12 @@ class Revision: #For getting the history of pages
         #Based off of the edit summary and the change in size of the page
         #Can technically be fooled, but it's so unlikely, and shouldn't be a major consequence regardless (hopefully)
         moveData = revisionMoveRegex.search(self.Comment)
-        if moveData and moveData.group(1) == self.User:
-            if self.SizeChange == 0 or self.SizeChange == 61+len(moveData.group(3).encode("utf-8")):
+        if moveData:
+            if self.IsMinor and self.SizeChange == 0 or self.SizeChange == 61+len(moveData.group(3).encode("utf-8")):
                 return True, moveData.group(2), moveData.group(3)
         oldMoveData = oldRevisionMoveRegex.search(self.Comment)
         if oldMoveData:
-            if self.SizeChange == 0 or self.SizeChange == 61+len(oldMoveData.group(2).encode("utf-8")):
+            if self.IsMinor and self.SizeChange == 0 or self.SizeChange == 61+len(oldMoveData.group(2).encode("utf-8")):
                 return True, oldMoveData.group(1), oldMoveData.group(2)
         return False, None, None
 
