@@ -128,4 +128,4 @@ def panicCheck():
                 SetStopped(True)
 BeginTaskCycle(panicCheck, "Main Loop")
 if not WasForceExit:
-    input("Press enter to exit...")
+    input("\nPress enter to exit...")
