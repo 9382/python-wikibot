@@ -102,7 +102,16 @@ def panicCheck():
         expectedTaskCount = tasks
         #Verify we're logged in and not stopped
         try:
-            confirmStatus = requestapi("get", "action=query&assert=user")
+            requestapi("get", "action=query&assert=user") #Force an assert=user test
+            panic = Article(f"User:{username}/panic")
+            if panic.Exists:
+                if panic.GetContent().strip().lower() == "true":
+                    SetStopped(True)
+                else:
+                    SetStopped(False)
+            else:
+                lalert(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
+                SetStopped(True)
         except Exception as exc:
             if type(exc) == APIException and exc.code == "assertuserfailed":
                 lerror(f"assert=user has failed as we appear to be logged out. Re-requesting login...")
@@ -114,17 +123,7 @@ def panicCheck():
                     lsucc("Managed to log back in. Resuming tasks...")
                     SetStopped(False)
             else:
-                lerror(f"assert=user request had an error. Reason: {exc}")
-                SetStopped(True)
-        else:
-            panic = Article(f"User:{username}/panic")
-            if panic.Exists:
-                if panic.GetContent().strip().lower() == "true":
-                    SetStopped(True)
-                else:
-                    SetStopped(False)
-            else:
-                lwarn(f"Panic page (User:{username}/panic) doesn't exist, stopping for safety")
+                lerror(f"panic check had an error. Reason: {exc}")
                 SetStopped(True)
 BeginTaskCycle(panicCheck, "Main Loop")
 if not WasForceExit:
