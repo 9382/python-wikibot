@@ -47,8 +47,8 @@ def BeginTaskCycle(func, funcName=None):
             WasForceExit = True
             break
         except BaseException as exc:
-            lerror(f"[Tasks] Function {funcName} just threw a critical (not request based) error: {traceback.format_exc()}\nThis thread will restart in 15 minutes...")
-            time.sleep(900)
+            lerror(f"[Tasks] Function {funcName} just threw a critical (not request based) error: {traceback.format_exc()}\nThis thread will restart in 5 minutes...")
+            time.sleep(300)
             continue
         else:
             lwarn(f"[Tasks] Function {funcName} exited the loop without error, and so will not be restarterd")
