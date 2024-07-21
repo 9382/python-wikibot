@@ -652,8 +652,11 @@ class WikiConfig: #Handles the fetching of configs from on-wiki locations
                 return lerror(f"[WikiConfig] Trouble parsing {self.Page}: {exc}")
             else:
                 for key,data in NewConfig.items():
-                    value = data["Value"]
-                    if self.Config[key] != value:
+                    if type(data) != dict or type(key) != str:
+                        lalert(f"[WikiConfig] Page {self.Page} has an unexpected data format")
+                        return #Don't bother processing stuff further
+                    value = data.get("Value")
+                    if self.Config.get(key) != value:
                         log(f"[WikiConfig] '{key}' in config {self.Page} was changed to '{value}'")
                         self.Config[key] = value
 
