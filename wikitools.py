@@ -345,7 +345,11 @@ class Article: #Creates a class representation of an article to contain function
                 raise Exception(f"Invalid identifier input '{identifier}'")
             rawData = requestapi("get", f"{_ArticleSearchString}&{searchType}={identifier}{FollowRedirects and '&redirects=' or ''}")
             queryData = SimplifyQueryData(rawData["query"])
-            pageInfo = rawData["query"]["pages"][rawData["query"]["pageids"][0]] #Loooovely oneliner, ay?
+            try:
+                pageInfo = rawData["query"]["pages"][rawData["query"]["pageids"][0]] #Loooovely oneliner, ay?
+            except KeyError as exc:
+                lerror(f"Invalid query data returned when trying to fetch article with identifier {identifier}")
+                raise exc
 
         if "invalid" in pageInfo:
             raise APIException(pageInfo["invalidreason"],"invalidpage")
@@ -674,7 +678,7 @@ def AttemptLogin(name, password):
     log(f"Attempting to log-in as {name}")
     loginAttempt = CreateAPIFormRequest("action=login", {"lgname":name, "lgpassword":password, "lgtoken":GetTokenForType("login")}, DoAssert=False)["login"]
     if loginAttempt["result"] != "Success":
-        lerror(f"Failed to log-in as {name}. check the password and username are correct")
+        lerror(f"Failed to log-in as {name}: \"{loginAttempt['reason'] or '<unknown>'}\". Check the password and username are correct")
         return False, None
     else:
         username = loginAttempt["lgusername"]
