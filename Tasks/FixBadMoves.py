@@ -26,7 +26,7 @@ def Plural(n, s1, s2):
     return s1 if n == 1 else s2
 
 
-def CalculateSubpageFixability(OldPage, NewPage):
+def CalculateSubpageFixability(OldPage, NewPage, TimeOfMove):
     PagesToBeMoved = []
     try:
         LinkedArticleIssue = False
@@ -42,7 +42,24 @@ def CalculateSubpageFixability(OldPage, NewPage):
             if not OldPage.IsRedirect:
                 if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
                     return IS_FIXED, "The move was reverted"
-                return WONT_FIX, "The old page is no longer a redirect"
+                # The old page is no longer a redirect. Make sure we aren't a handled pageswap or self-archiving
+                if not NewPage.IsRedirect:
+                    if NewPage.Title.startswith(OldPage.Title + "/Archive"):
+                        # We are archiving-by-moving
+                        return IS_FIXED, "The move was a pagemove archiving"
+                    for Page in PagesToBeMoved:
+                        PageIsValid = False
+                        History = Page.GetHistory()
+                        for Revision in History:
+                            wasMoved, From, To = Revision.IsMove()
+                            if wasMoved and To.startswith(OldPage.Title + "/") and abs(Revision.Date.timestamp() - TimeOfMove) < 3600:
+                                PageIsValid = True
+                                break
+                        if not PageIsValid:
+                            return WONT_FIX, "The old page is no longer a redirect and isn't a pageswap"
+                    return IS_FIXED, "The move was a pageswap with subpages already moved"
+                else:
+                    return WONT_FIX, "The old page is no longer a redirect (but the new one is?)"
             if LinkedArticleIssue:
                 return WONT_FIX, "One of the subpages has a linked article page"
             if NewPage.IsRedirect:
@@ -186,7 +203,7 @@ def PostRelevantUpdates():
         OldPage, NewPage = Article(page["oldpage"]), Article(page["newpage"])
         page["oldpage_article"] = OldPage
         page["newpage_article"] = NewPage
-        Decision, Data = CalculateSubpageFixability(OldPage, NewPage)
+        Decision, Data = CalculateSubpageFixability(OldPage, NewPage, page["logtime"])
         if Decision == IS_FIXED:
             FlaggedPages.remove(page)
         elif Decision == WILL_FIX:
@@ -256,7 +273,8 @@ def PerformLogCheck():
         if event["logid"] not in CheckedLogs:
             CheckedLogs.add(event["logid"])
             OldPage, NewPage = event["title"], event["params"]["target_title"]
-            result, message = CalculateSubpageFixability(Article(OldPage), Article(NewPage))
+            logtime = datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp()
+            result, message = CalculateSubpageFixability(Article(OldPage), Article(NewPage), logtime)
             if result != IS_FIXED:
                 log(f"'{OldPage}' is now in the buffer check")
                 PagesToBeMoved = []
@@ -264,13 +282,12 @@ def PerformLogCheck():
                     if not Subpage.IsRedirect:
                         PagesToBeMoved.append(Subpage)
                 PagesToCheck.append({
-                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(PagesToBeMoved),
-                    "logtime":datetime.datetime.fromisoformat(event["timestamp"][:-1]).timestamp()
+                    "oldpage":OldPage, "newpage":NewPage, "subpages":len(PagesToBeMoved), "logtime":logtime
                 })
 
     for page in list(PagesToCheck):
         if datetime.datetime.utcnow().timestamp() > page["logtime"] + 60*Config.get("CheckBufferTime"):
-            result, message = CalculateSubpageFixability(Article(page["oldpage"]), Article(page["newpage"]))
+            result, message = CalculateSubpageFixability(Article(page["oldpage"]), Article(page["newpage"]), page["logtime"])
             if result != IS_FIXED:
                 log(f"{page['oldpage']} has failed the buffer check, and has now moved to the flagged list")
                 PagesToFlag.append(page)
