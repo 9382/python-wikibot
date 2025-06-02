@@ -69,7 +69,8 @@ def CalculateSubpageFixability(OldPage, NewPage):
             if not OldPage.IsRedirect:
                 if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
                     return IS_FIXED, "The move was reverted"
-            return WONT_FIX, "All(?) of the subpages have a linked article page"
+                return WONT_FIX, "The old page is no longer a redirect"
+            return IS_FIXED, "All of the subpages have a linked article page and are therefore probably unrelated, ignore"
     except Exception as exc:
         lerror(f"Encountered critical error while attempting to CalculateSubpageFixability: {exc}")
         return CANT_FIX, "Ran into a critical error (check logs)"
