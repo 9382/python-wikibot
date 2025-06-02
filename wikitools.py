@@ -341,6 +341,9 @@ class Article: #Creates a class representation of an article to contain function
                 elif "title" in identifier:
                     identifier = identifier["title"]
                     searchType = "titles"
+            elif type(identifier) == Article:
+                identifier = identifier.PageID
+                searchType = "pageids"
             else:
                 raise Exception(f"Invalid identifier input '{identifier}'")
             rawData = requestapi("get", f"{_ArticleSearchString}&{searchType}={identifier}{FollowRedirects and '&redirects=' or ''}")

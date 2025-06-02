@@ -40,7 +40,7 @@ def CalculateSubpageFixability(OldPage, NewPage, TimeOfMove):
                     PagesToBeMoved.append(Subpage)
         if len(PagesToBeMoved) > 0:
             if not OldPage.IsRedirect:
-                if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
+                if (NewPage.IsRedirect and Article(NewPage, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
                     return IS_FIXED, "The move was reverted"
                 # The old page is no longer a redirect. Make sure we aren't a handled pageswap or self-archiving
                 if not NewPage.IsRedirect:
@@ -64,7 +64,7 @@ def CalculateSubpageFixability(OldPage, NewPage, TimeOfMove):
                 return WONT_FIX, "One of the subpages has a linked article page"
             if NewPage.IsRedirect:
                 return WONT_FIX, "The new page is now also a redirect"
-            if Article(OldPage.PageID, FollowRedirects=True).PageID != NewPage.PageID:
+            if Article(OldPage, FollowRedirects=True).PageID != NewPage.PageID:
                 return WONT_FIX, "These pages are not obviously related to eachother"
             if not (OldPage.GetLinkedPage().Exists and NewPage.GetLinkedPage().Exists):
                 return WONT_FIX, "One of the pages is missing an associated article page?"
@@ -84,7 +84,7 @@ def CalculateSubpageFixability(OldPage, NewPage, TimeOfMove):
             return WILL_FIX, FixMap
         elif LinkedArticleIssue:
             if not OldPage.IsRedirect:
-                if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
+                if (NewPage.IsRedirect and Article(NewPage, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
                     return IS_FIXED, "The move was reverted"
                 return WONT_FIX, "The old page is no longer a redirect"
             return IS_FIXED, "All of the subpages have a linked article page and are therefore probably unrelated, ignore"
