@@ -29,17 +29,23 @@ def Plural(n, s1, s2):
 def CalculateSubpageFixability(OldPage, NewPage):
     PagesToBeMoved = []
     try:
+        LinkedArticleIssue = False
         for Subpage in OldPage.GetSubpages():
             Subpage = Article(Subpage)
             if not Subpage.IsRedirect:
                 if Subpage.GetLinkedPage().Exists:
-                    return WONT_FIX, "One of the subpages has a linked article page"
-                PagesToBeMoved.append(Subpage)
+                    if Subpage.PageID != NewPage.PageID:
+                        # Do the actual rejection later to allow the IS_FIXED of move reversion to get in
+                        LinkedArticleIssue = True
+                else:
+                    PagesToBeMoved.append(Subpage)
         if len(PagesToBeMoved) > 0:
             if not OldPage.IsRedirect:
                 if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
                     return IS_FIXED, "The move was reverted"
                 return WONT_FIX, "The old page is no longer a redirect"
+            if LinkedArticleIssue:
+                return WONT_FIX, "One of the subpages has a linked article page"
             if NewPage.IsRedirect:
                 return WONT_FIX, "The new page is now also a redirect"
             if Article(OldPage.PageID, FollowRedirects=True).PageID != NewPage.PageID:
@@ -60,6 +66,11 @@ def CalculateSubpageFixability(OldPage, NewPage):
                 else:
                     FixMap[Subpage] = NewName
             return WILL_FIX, FixMap
+        elif LinkedArticleIssue:
+            if not OldPage.IsRedirect:
+                if (NewPage.IsRedirect and Article(NewPage.PageID, FollowRedirects=True).PageID == OldPage.PageID) or not NewPage.Exists:
+                    return IS_FIXED, "The move was reverted"
+            return WONT_FIX, "All(?) of the subpages have a linked article page"
     except Exception as exc:
         lerror(f"Encountered critical error while attempting to CalculateSubpageFixability: {exc}")
         return CANT_FIX, "Ran into a critical error (check logs)"
