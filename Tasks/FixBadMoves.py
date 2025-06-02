@@ -30,8 +30,7 @@ def CalculateSubpageFixability(OldPage, NewPage):
     PagesToBeMoved = []
     try:
         LinkedArticleIssue = False
-        for Subpage in OldPage.GetSubpages():
-            Subpage = Article(Subpage)
+        for Subpage in OldPage.GetSubpageObjects():
             if not Subpage.IsRedirect:
                 if Subpage.GetLinkedPage().Exists:
                     if Subpage.PageID != NewPage.PageID:
@@ -260,8 +259,7 @@ def PerformLogCheck():
             if result != IS_FIXED:
                 log(f"'{OldPage}' is now in the buffer check")
                 PagesToBeMoved = []
-                for Subpage in Article(OldPage).GetSubpages():
-                    Subpage = Article(Subpage)
+                for Subpage in Article(OldPage).GetSubpageObjects():
                     if not Subpage.IsRedirect:
                         PagesToBeMoved.append(Subpage)
                 PagesToCheck.append({

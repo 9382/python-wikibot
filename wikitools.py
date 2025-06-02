@@ -490,6 +490,9 @@ class Article: #Creates a class representation of an article to contain function
     def GetSubpages(self):
         return requestapi("get", f"action=query&list=allpages&aplimit=100&apnamespace={self.NamespaceID}&apprefix={self.StrippedURLTitle}/")["query"]["allpages"]
 
+    def GetSubpageObjects(self, *, FollowRedirects=False):
+        return BatchProcessArticles(self.GetSubpages(), FollowRedirects=FollowRedirects)
+
     def GetTemplates(self):
         if self._Templates != None:
             return self._Templates

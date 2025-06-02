@@ -46,12 +46,11 @@ def DetermineBadMove(page):
                 return MarkUnsafe(currentLocation, "Origin page of the move doesn't exist")
 
             #At this point, we should be happy enough to go ahead and move pages
-            subpages = prevPage.GetSubpages()
+            subpages = prevPage.GetSubpageObjects()
             if len(subpages) == 0:
                 return MarkUnsafe(currentLocation, "Couldn't find any pages to move")
             articleSubpages = []
             for subpage in subpages:
-                subpage = Article(subpage)
                 if not subpage.IsRedirect:
                     articleSubpages.append(subpage) #Avoid double-grabbing
             if len(articleSubpages) == 0:
