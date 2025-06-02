@@ -380,6 +380,8 @@ class Article: #Creates a class representation of an article to contain function
         self._Templates = None
     def __str__(self):
         return self.Title
+    def __repr__(self):
+        return f"Article(pageid={self.PageID} title={self.Title})"
 
     def GetContent(self):
         if not self.Exists:
