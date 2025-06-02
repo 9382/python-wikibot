@@ -63,6 +63,14 @@ def CalculateSubpageFixability(OldPage, NewPage, TimeOfMove):
             if LinkedArticleIssue:
                 return WONT_FIX, "One of the subpages has a linked article page"
             if NewPage.IsRedirect:
+                History = NewPage.GetHistory()
+                if len(History) == 1 and TimeOfMove != 0:
+                    NewNewPage = Article(NewPage, FollowRedirects=True)
+                    Status, Data = CalculateSubpageFixability(OldPage, NewNewPage, 0) # 0 to disregard "pageswap" potentials
+                    if Status == WILL_FIX:
+                        return WILL_FIX, {"newnewpage":NewNewPage, "data":Data}
+                    else:
+                        return WONT_FIX, "The new page is now a non-double-move redirect"
                 return WONT_FIX, "The new page is now also a redirect"
             if Article(OldPage, FollowRedirects=True).PageID != NewPage.PageID:
                 return WONT_FIX, "These pages are not obviously related to eachother"
@@ -207,6 +215,9 @@ def PostRelevantUpdates():
         if Decision == IS_FIXED:
             FlaggedPages.remove(page)
         elif Decision == WILL_FIX:
+            if "newnewpage" in Data:
+                page["newpage_article"] = Data["newnewpage"]
+                Data = Data["data"]
             Pages_willfix.append([page, Data])
         elif Decision == WONT_FIX:
             log(f"Refused to automatically fix {OldPage} because {Data}")
