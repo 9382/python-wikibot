@@ -598,7 +598,7 @@ def BatchProcessArticles(articleSet, *, FollowRedirects=False):
     output = []
     # The 200 at a time limit is arbitrary, I just felt like 200 sounded reasonable
     while len(pageIDs) > 0:
-        rawData = requestapi("post", f"{_ArticleSearchString}{FollowRedirects and '&redirects=' or ''}", data={"pageids": "|".join(pageIDs[0:200])})["query"]
+        rawData = requestapi("post", f"{_ArticleSearchString}{FollowRedirects and '&redirects=' or ''}", data={"pageids": "|".join([str(ID) for ID in pageIDs[0:200]])})["query"]
         queryData = SimplifyQueryData(rawData)
         pageIDs = pageIDs[200:]
         for pageid in rawData["pageids"]:
