@@ -103,6 +103,22 @@ enwiki = "https://en.wikipedia.org/"
 requestSession = requests.Session()
 requestSession.headers.update({"User-Agent": "python-wikibot/2.1.0"}) #version number is mostly random
 
+# Temporary loud logging to try figure out the "randomly logged out" issue
+def compareCookies(before, after):
+    seenKeys = set()
+    beforeDict = {x[0]: x[1] for x in before}
+    for key, value in after:
+        seenKeys.add(key)
+        if key not in beforeDict:
+            log(f"[cookies] New key: {key}")
+        else:
+            oldValue = beforeDict[key]
+            if value != oldValue and key != "cpPosIndex": # cpPosIndex seems to be "chronological protection", so expect changes
+                log(f"[cookies] Value of key {key} changed")
+    for key, _ in before:
+        if key not in seenKeys:
+            log(f"[cookies] Key dropped: {key}")
+
 #Central request handler, used for automatically sorting cookies
 MaxRequestTries = 3
 def request(method, page, **kwargs):
@@ -110,7 +126,9 @@ def request(method, page, **kwargs):
     for i in range(1, MaxRequestTries+1):
         startTime = time.perf_counter()
         try:
+            cookiesBefore = requestSession.cookies.items()
             request = getattr(requestSession, method)(page, **kwargs)
+            cookiesAfter = requestSession.cookies.items()
         except (requests.ConnectionError, requests.Timeout) as exc:
             lalert(f"Failed to send a request due to timeout on try {i}{i<MaxRequestTries and '; gonna sleep for a bit and then try again' or ''}")
             if i == MaxRequestTries:
@@ -118,6 +136,7 @@ def request(method, page, **kwargs):
             time.sleep(5)
         else:
             timeTaken = time.perf_counter() - startTime
+            compareCookies(cookiesBefore, cookiesAfter)
             break
     if timeTaken > 2.5:
         lwarn(f"[request] Just took {timeTaken}s to complete a single request - are we running alright?")
@@ -129,11 +148,13 @@ def requestapi(method, apimethod, DoAssert=True, **kwargs):
     apirequest = request(method, enwiki+"w/api.php?"+apimethod+f"&format=json{DoAssert and '&assert=user' or ''}", **kwargs)
     data = apirequest.json()
     if "error" in data: #Request failed
-        code,info = data["error"]["code"], data["error"]["info"]
+        code, info = data["error"]["code"], data["error"]["info"]
         lerror(f"[requestapi] API Request failed to complete for query '{apimethod}' | {code} - {info}")
+        if code == "assertuserfailed":
+            log(f"[cookies] Cookies at the time of assertuserfailed: {requestSession.cookies.keys()}")
         raise APIException(info, code)
     if "warnings" in data: #Request worked, though theres some issues
-        for warntype,text in data["warnings"].items():
+        for warntype, text in data["warnings"].items():
             lwarn(f"[requestapi] API Request {warntype} warning for query '{apimethod}' - {text['*']}")
     # print("Haha look at me its raw data man for",method,apimethod,data)
     return data
